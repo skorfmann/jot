@@ -1,0 +1,17 @@
+server:
+  addr: ":8080"
+  base_url: http://localhost:8080
+  insecure_http: true
+
+storage:
+  endpoint: http://garage:3900
+  region: garage
+  bucket: jot
+  access_key_id: replace-with-garage-access-key
+  secret_access_key: replace-with-garage-secret-key
+  force_path_style: true
+
+auth:
+  mode: dev
+  cookie_secret: 0000000000000000000000000000000000000000000000000000000000000000
+  session_ttl: 1h

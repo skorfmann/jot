@@ -1,0 +1,12 @@
+.DS_Store
+
+# Build output
+/dist/
+/bin/
+/coverage.out
+
+# Local jot push context
+.jot/
+
+# Local demo state
+deploy/local/garage-data/

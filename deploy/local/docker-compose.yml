@@ -1,0 +1,41 @@
+services:
+  garage:
+    image: dxflrs/garage:v1.0.1
+    ports:
+      - "3900:3900"
+      - "3902:3902"
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+      - garage-data:/var/lib/garage
+
+  garage-init:
+    image: dxflrs/garage:v1.0.1
+    depends_on: [garage]
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        sleep 3
+        NODE_ID=$$(garage status | awk 'NR==3 {print $$1}')
+        garage layout assign "$$NODE_ID" -z dc1 -c 1G -t local || true
+        garage layout apply --version 1 || true
+        garage bucket create jot || true
+        garage key create jot-key || true
+        garage bucket allow --read --write --owner jot --key jot-key || true
+        garage key info jot-key
+
+  jot:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    depends_on: [garage-init]
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./jot.yaml:/etc/jot.yaml:ro
+    environment:
+      JOT_CONFIG: /etc/jot.yaml
+
+volumes:
+  garage-data:

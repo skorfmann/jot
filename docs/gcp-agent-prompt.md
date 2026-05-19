@@ -46,7 +46,7 @@ Steps:
      - Create OAuth client ID, type Web application, name jot
      - Authorized redirect URIs:
        - https://$JOT_DOMAIN/_auth/callback
-       - http://localhost
+       - http://127.0.0.1:50573/callback
      - Store the client ID and secret:
        echo -n "<client-id>"     | gcloud secrets create jot-oauth-client-id --data-file=-
        echo -n "<client-secret>" | gcloud secrets create jot-oauth-client-secret --data-file=-

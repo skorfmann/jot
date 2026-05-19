@@ -140,7 +140,7 @@ Each step is independently safe. A crash before step 5 leaves orphan blobs and a
      "scopes": ["openid", "email", "profile"] }
    ```
 3. CLI does OIDC discovery on `issuer` for token/auth endpoints.
-4. CLI spins up `http://127.0.0.1:<random-port>/callback`, opens the browser to the authorize URL with PKCE.
+4. CLI spins up `http://127.0.0.1:50573/callback` by default, opens the browser to the authorize URL with PKCE. The port can be changed with `--callback-port`.
 5. Operator signs in at the IdP; browser redirects to localhost with a code.
 6. CLI exchanges code → ID token + refresh token. Stores refresh token in the OS keychain via `zalando/go-keyring` (fallback: `~/.config/jot/credentials.json` at 0600).
 7. Per request: refresh → ID token → `Authorization: Bearer <id-token>`.
@@ -199,9 +199,9 @@ The `Authorize.Check` function is the only IdP-specific code path. Same OIDC ver
 One client per jot install, with two redirect URIs registered:
 
 1. `https://jot.example.com/_auth/callback` (browser flow)
-2. `http://localhost` (CLI loopback — IdP allows arbitrary port under this base)
+2. `http://127.0.0.1:50573/callback` (CLI loopback default; add more exact callback URIs if operators use `--callback-port`)
 
-Google: create a "Web application" OAuth 2.0 client. Okta/Auth0/etc: create a generic OIDC client and allow both URIs.
+Google: create a "Web application" OAuth 2.0 client. Google requires the callback URI to exactly match, including host, port, and path. Okta/Auth0/etc: create a generic OIDC client and allow both URIs.
 
 ### Actor attribution
 
@@ -684,7 +684,7 @@ fails, stop and explain.
      c. Name: "jot"
      d. Authorized redirect URIs:
           - https://$JOT_DOMAIN/_auth/callback
-          - http://localhost           (one entry; loopback uses any port under this)
+          - http://127.0.0.1:50573/callback
      e. Click Create. Have the user copy the Client ID and Client secret back to you.
 
    Store both in Secret Manager:

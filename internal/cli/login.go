@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,11 +27,13 @@ type authConfigResponse struct {
 
 func (r *Root) loginCmd() *cobra.Command {
 	var noBrowser bool
+	var callbackPort int
 	cmd := &cobra.Command{
 		Use:   "login",
 		Short: "Authenticate to a jot server using OIDC",
 		Example: `  jot login --server https://jot.example.com
   jot login --server http://localhost:8080
+  jot login --server https://jot.example.com --callback-port 50573
   jot login --server https://jot.example.com --no-browser`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			server, err := resolveServer(r.serverURL)
@@ -72,7 +75,7 @@ func (r *Root) loginCmd() *cobra.Command {
 			if noBrowser {
 				tok, err = runDeviceFlow(cmd.Context(), r, oauthCfg)
 			} else {
-				tok, err = runLoopbackFlow(cmd.Context(), r, oauthCfg)
+				tok, err = runLoopbackFlow(cmd.Context(), r, oauthCfg, callbackPort)
 			}
 			if err != nil {
 				return err
@@ -99,6 +102,7 @@ func (r *Root) loginCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&noBrowser, "no-browser", false, "Use OAuth 2.0 device authorization instead of opening a browser.")
+	cmd.Flags().IntVar(&callbackPort, "callback-port", 50573, "Local callback port for browser login. Register http://127.0.0.1:PORT/callback with the OIDC provider; use 0 for a random port.")
 	return cmd
 }
 
@@ -139,10 +143,14 @@ func fetchAuthConfig(ctx context.Context, server string) (authConfigResponse, er
 	return cfg, json.NewDecoder(res.Body).Decode(&cfg)
 }
 
-func runLoopbackFlow(ctx context.Context, r *Root, cfg oauth2.Config) (*oauth2.Token, error) {
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
+func runLoopbackFlow(ctx context.Context, r *Root, cfg oauth2.Config, callbackPort int) (*oauth2.Token, error) {
+	addr := "127.0.0.1:0"
+	if callbackPort > 0 {
+		addr = net.JoinHostPort("127.0.0.1", strconv.Itoa(callbackPort))
+	}
+	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("listen on %s: %w; pass --callback-port PORT and register http://127.0.0.1:PORT/callback with your OIDC provider", addr, err)
 	}
 	defer listener.Close()
 	codeCh := make(chan string, 1)

@@ -55,13 +55,13 @@ stored on the deploy so future ` + "`jot ls --search`" + ` queries have useful c
 		},
 	}
 	cmd.Flags().StringVar(&opts.slug, "as", "", "Use or create this slug. Default: generated 8-character slug.")
-	cmd.Flags().StringVar(&opts.title, "title", "", "Short human-readable label, e.g. \"Q2 Sales Report\".")
-	cmd.Flags().StringVar(&opts.summary, "summary", "", "1-2 sentence searchable note describing purpose, scope, and time context.")
-	cmd.Flags().StringArrayVar(&opts.tags, "tag", nil, "Repeatable tag for categorization, e.g. --tag report --tag q2.")
-	cmd.Flags().StringVar(&opts.index, "index", "", "Directory file to expose as /index.html when no index.html exists.")
-	cmd.Flags().StringVar(&opts.spa, "spa", "", "Manifest path to serve as the SPA fallback, e.g. /index.html.")
-	cmd.Flags().StringArrayVar(&opts.headers, "header", nil, "Repeatable per-path header: \"<glob>=<key>: <value>\".")
-	cmd.Flags().StringVar(&opts.actor, "actor", os.Getenv("JOT_ACTOR"), "Free-form actor recorded for audit, e.g. claude-code.")
+	cmd.Flags().StringVar(&opts.title, "title", "", "Short human-readable label.\nExample: \"Q2 Sales Report\".")
+	cmd.Flags().StringVar(&opts.summary, "summary", "", "A 1-2 sentence description used by `jot ls --search`.\nWrite it as a note for your future self or another agent.\nExample: \"Q2 2026 revenue breakdown by region, generated from BI export on May 19.\"")
+	cmd.Flags().StringArrayVar(&opts.tags, "tag", nil, "Repeatable tag for categorization.\nExample: --tag report --tag q2 --tag finance")
+	cmd.Flags().StringVar(&opts.index, "index", "", "Directory file to expose as /index.html when no index.html exists.\nExample: --index report.html")
+	cmd.Flags().StringVar(&opts.spa, "spa", "", "Manifest path to serve for unknown HTML routes.\nExample: --spa /index.html")
+	cmd.Flags().StringArrayVar(&opts.headers, "header", nil, "Repeatable per-path response header override.\nFormat: \"<glob>=<key>: <value>\"\nExample: --header \"/assets/**=cache-control: public, max-age=31536000, immutable\"")
+	cmd.Flags().StringVar(&opts.actor, "actor", os.Getenv("JOT_ACTOR"), "Free-form actor recorded for audit only.\nExample: claude-code")
 	cmd.Flags().BoolVar(&opts.jsonOutput, "json", false, "Emit newline-delimited JSON upload events and a final result.")
 	return cmd
 }

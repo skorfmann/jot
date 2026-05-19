@@ -59,10 +59,10 @@ func (r *Root) listCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&mine, "mine", false, "Only show deploys pushed by the current identity.")
-	cmd.Flags().BoolVar(&local, "local", false, "Only show deploys tracked in ./.jot/pushes.json.")
-	cmd.Flags().StringArrayVar(&tags, "tag", nil, "Repeatable tag filter.")
-	cmd.Flags().StringVar(&search, "search", "", "Substring search over title and summary.")
-	cmd.Flags().IntVar(&limit, "limit", 50, "Maximum deploys to return.")
+	cmd.Flags().BoolVar(&local, "local", false, "Only show deploys tracked in ./.jot/pushes.json for this working directory.")
+	cmd.Flags().StringArrayVar(&tags, "tag", nil, "Repeatable tag filter. All provided tags must match.\nExample: --tag report --tag q2")
+	cmd.Flags().StringVar(&search, "search", "", "Substring search over title and summary.\nExample: --search \"revenue breakdown\"")
+	cmd.Flags().IntVar(&limit, "limit", 50, "Maximum deploys to return. Default: 50.")
 	cmd.Flags().BoolVar(&jsonOut, "json", false, "Emit JSON.")
 	return cmd
 }

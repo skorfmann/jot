@@ -54,3 +54,116 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository }}:${{ github.ref_name }}
             ghcr.io/${{ github.repository }}:latest
+      - name: Open Homebrew tap PR
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${HOMEBREW_TAP_TOKEN:-}" ]; then
+            echo "HOMEBREW_TAP_TOKEN is not configured; skipping tap PR"
+            exit 0
+          fi
+          version="${GITHUB_REF_NAME#v}"
+          checksum() {
+            awk -v name="$1" '$2 == name { print $1 }' dist/checksums.txt
+          }
+          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/skorfmann/homebrew-jot.git" tap
+          cat > tap/Formula/jot.rb <<EOF
+          class Jot < Formula
+            desc "CLI for the Jot private static-hosting service"
+            homepage "https://github.com/skorfmann/jot"
+            version "${version}"
+
+            on_macos do
+              on_arm do
+                url "https://github.com/skorfmann/jot/releases/download/v#{version}/jot-darwin-arm64"
+                sha256 "$(checksum jot-darwin-arm64)"
+              end
+
+              on_intel do
+                url "https://github.com/skorfmann/jot/releases/download/v#{version}/jot-darwin-amd64"
+                sha256 "$(checksum jot-darwin-amd64)"
+              end
+            end
+
+            on_linux do
+              on_arm do
+                url "https://github.com/skorfmann/jot/releases/download/v#{version}/jot-linux-arm64"
+                sha256 "$(checksum jot-linux-arm64)"
+              end
+
+              on_intel do
+                url "https://github.com/skorfmann/jot/releases/download/v#{version}/jot-linux-amd64"
+                sha256 "$(checksum jot-linux-amd64)"
+              end
+            end
+
+            def install
+              bin.install Dir["jot-*"].first => "jot"
+            end
+
+            def caveats
+              <<~EOS
+                This formula installs jot, which on macOS shadows the BSD jot
+                utility (a number-sequence generator). To use the BSD jot, invoke it as
+                /usr/bin/jot.
+              EOS
+            end
+
+            test do
+              assert_match "Push private static artifacts", shell_output("#{bin}/jot --help")
+            end
+          end
+          EOF
+          cat > tap/Formula/jot-server.rb <<EOF
+          class JotServer < Formula
+            desc "Server for the Jot private static-hosting service"
+            homepage "https://github.com/skorfmann/jot"
+            version "${version}"
+
+            on_macos do
+              on_arm do
+                url "https://github.com/skorfmann/jot/releases/download/v#{version}/jot-server-darwin-arm64"
+                sha256 "$(checksum jot-server-darwin-arm64)"
+              end
+
+              on_intel do
+                url "https://github.com/skorfmann/jot/releases/download/v#{version}/jot-server-darwin-amd64"
+                sha256 "$(checksum jot-server-darwin-amd64)"
+              end
+            end
+
+            on_linux do
+              on_arm do
+                url "https://github.com/skorfmann/jot/releases/download/v#{version}/jot-server-linux-arm64"
+                sha256 "$(checksum jot-server-linux-arm64)"
+              end
+
+              on_intel do
+                url "https://github.com/skorfmann/jot/releases/download/v#{version}/jot-server-linux-amd64"
+                sha256 "$(checksum jot-server-linux-amd64)"
+              end
+            end
+
+            def install
+              bin.install Dir["jot-server-*"].first => "jot-server"
+            end
+
+            test do
+              assert_match "config", shell_output("#{bin}/jot-server --help 2>&1", 2)
+            end
+          end
+          EOF
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          branch="jot-${GITHUB_REF_NAME}"
+          git checkout -b "$branch"
+          git add Formula/jot.rb Formula/jot-server.rb
+          git commit -m "Update jot to ${GITHUB_REF_NAME}"
+          git push -u origin "$branch"
+          gh pr create \
+            --repo skorfmann/homebrew-jot \
+            --title "Update jot to ${GITHUB_REF_NAME}" \
+            --body "Updates jot and jot-server formulas for ${GITHUB_REF_NAME}."

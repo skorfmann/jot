@@ -11,6 +11,13 @@ go install github.com/skorfmann/jot/cmd/jot@latest
 go install github.com/skorfmann/jot/cmd/jot-server@latest
 ```
 
+## Homebrew
+
+```bash
+brew install skorfmann/jot/jot
+brew install skorfmann/jot/jot-server
+```
+
 ## Quick Local Demo
 
 ```bash

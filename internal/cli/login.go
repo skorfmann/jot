@@ -29,6 +29,9 @@ func (r *Root) loginCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "login",
 		Short: "Authenticate to a jot server using OIDC",
+		Example: `  jot login --server https://jot.example.com
+  jot login --server http://localhost:8080
+  jot login --server https://jot.example.com --no-browser`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			server, err := resolveServer(r.serverURL)
 			if err != nil {
@@ -103,6 +106,8 @@ func (r *Root) logoutCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "logout",
 		Short: "Remove stored credentials for a jot server",
+		Example: `  jot logout
+  jot logout --server https://jot.example.com`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			server, err := resolveServer(r.serverURL)
 			if err != nil {

@@ -22,8 +22,12 @@ func Execute() error {
 func NewRoot(out io.Writer) *cobra.Command {
 	r := &Root{out: out}
 	cmd := &cobra.Command{
-		Use:           "jot",
-		Short:         "Push private static artifacts to a self-hosted jot server",
+		Use:   "jot",
+		Short: "Push private static artifacts to a self-hosted jot server",
+		Example: `  jot login --server https://jot.example.com
+  jot push ./report.html --title "Q2 Sales" --summary "Revenue breakdown by region" --tag report
+  jot ls --mine
+  jot inspect a7b9c2d4`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}

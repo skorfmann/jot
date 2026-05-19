@@ -49,6 +49,10 @@ func (r *Root) pushCmd() *cobra.Command {
 
 Use this for finished HTML artifacts, reports, or built directories. Metadata is
 stored on the deploy so future ` + "`jot ls --search`" + ` queries have useful context.`,
+		Example: `  jot push ./report.html --title "Q2 Sales" --summary "Q2 revenue by region" --tag report
+  jot push ./dist --as dashboard --spa /index.html --title "Dashboard"
+  jot push ./dist --header "/assets/**=cache-control: public, max-age=31536000, immutable"
+  jot push ./report.html --json --actor claude-code`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return r.runPush(cmd.Context(), args[0], opts)
@@ -56,7 +60,7 @@ stored on the deploy so future ` + "`jot ls --search`" + ` queries have useful c
 	}
 	cmd.Flags().StringVar(&opts.slug, "as", "", "Use or create this slug. Default: generated 8-character slug.")
 	cmd.Flags().StringVar(&opts.title, "title", "", "Short human-readable label.\nExample: \"Q2 Sales Report\".")
-	cmd.Flags().StringVar(&opts.summary, "summary", "", "A 1-2 sentence description used by `jot ls --search`.\nWrite it as a note for your future self or another agent.\nExample: \"Q2 2026 revenue breakdown by region, generated from BI export on May 19.\"")
+	cmd.Flags().StringVar(&opts.summary, "summary", "", "A 1-2 sentence description used by jot ls --search.\nWrite it as a note for your future self or another agent.\nExample: \"Q2 2026 revenue breakdown by region, generated from BI export on May 19.\"")
 	cmd.Flags().StringArrayVar(&opts.tags, "tag", nil, "Repeatable tag for categorization.\nExample: --tag report --tag q2 --tag finance")
 	cmd.Flags().StringVar(&opts.index, "index", "", "Directory file to expose as /index.html when no index.html exists.\nExample: --index report.html")
 	cmd.Flags().StringVar(&opts.spa, "spa", "", "Manifest path to serve for unknown HTML routes.\nExample: --spa /index.html")

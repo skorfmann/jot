@@ -22,6 +22,11 @@ func (r *Root) listCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "ls",
 		Short: "List recent deploys",
+		Example: `  jot ls
+  jot ls --mine
+  jot ls --local
+  jot ls --tag report --search "revenue" --limit 20
+  jot ls --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if local {
 				return r.listLocal(jsonOut)
@@ -72,7 +77,10 @@ func (r *Root) inspectCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "inspect <slug|id>",
 		Short: "Show full metadata and file list for a deploy",
-		Args:  cobra.ExactArgs(1),
+		Example: `  jot inspect a7b9c2d4
+  jot inspect 01HXABCDEFGHJKMNPQRSTVWXYZ
+  jot inspect a7b9c2d4 --json`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := newAPIClient(r.serverURL)
 			if err != nil {
@@ -115,7 +123,9 @@ func (r *Root) historyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "history <slug>",
 		Short: "Show bounded deploy history for a slug",
-		Args:  cobra.ExactArgs(1),
+		Example: `  jot history dashboard
+  jot history dashboard --json`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := newAPIClient(r.serverURL)
 			if err != nil {
@@ -144,7 +154,9 @@ func (r *Root) rollbackCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "rollback <slug> [id]",
 		Short: "Restore the previous or a specific manifest for a slug",
-		Args:  cobra.RangeArgs(1, 2),
+		Example: `  jot rollback dashboard
+  jot rollback dashboard 01HXABCDEFGHJKMNPQRSTVWXYZ`,
+		Args: cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := newAPIClient(r.serverURL)
 			if err != nil {
@@ -171,7 +183,9 @@ func (r *Root) rmCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "rm <slug>",
 		Short: "Hard-delete a slug and its manifests",
-		Args:  cobra.ExactArgs(1),
+		Example: `  jot rm dashboard
+  jot rm a7b9c2d4`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := newAPIClient(r.serverURL)
 			if err != nil {
@@ -190,6 +204,8 @@ func (r *Root) whoamiCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "whoami",
 		Short: "Print the authenticated identity",
+		Example: `  jot whoami
+  jot whoami --server https://jot.example.com`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := newAPIClient(r.serverURL)
 			if err != nil {
@@ -205,10 +221,17 @@ func (r *Root) whoamiCmd() *cobra.Command {
 }
 
 func (r *Root) initCmd() *cobra.Command {
-	cmd := &cobra.Command{Use: "init", Short: "Scaffold jot configuration"}
+	cmd := &cobra.Command{
+		Use:   "init",
+		Short: "Scaffold jot configuration",
+		Example: `  jot init server > jot.yaml
+  JOT_CONFIG=./jot.yaml jot-server`,
+	}
 	cmd.AddCommand(&cobra.Command{
 		Use:   "server",
 		Short: "Print a documented server config scaffold",
+		Example: `  jot init server > jot.yaml
+  jot-server --config jot.yaml`,
 		Run: func(cmd *cobra.Command, args []string) {
 			r.printf("%s", server.ServerConfigScaffold())
 		},

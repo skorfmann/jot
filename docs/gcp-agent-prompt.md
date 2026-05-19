@@ -43,17 +43,19 @@ Steps:
 
 7. Stop for the manual OAuth client step:
      - Console -> APIs & Services -> Credentials
-     - Create OAuth client ID, type Web application, name jot
+     - Create OAuth client ID, type Web application, name jot-web
      - Authorized redirect URIs:
        - https://$JOT_DOMAIN/_auth/callback
-       - http://127.0.0.1:50573/callback
-     - Store the client ID and secret:
-       echo -n "<client-id>"     | gcloud secrets create jot-oauth-client-id --data-file=-
-       echo -n "<client-secret>" | gcloud secrets create jot-oauth-client-secret --data-file=-
+     - Create OAuth client ID, type Desktop app, name jot-cli
+     - Store the web client ID, web client secret, and CLI desktop client ID:
+       echo -n "<web-client-id>"     | gcloud secrets create jot-oauth-client-id --data-file=-
+       echo -n "<web-client-secret>" | gcloud secrets create jot-oauth-client-secret --data-file=-
+       echo -n "<cli-client-id>"     | gcloud secrets create jot-oauth-cli-client-id --data-file=-
 
 8. Grant secret access:
      for s in jot-s3-access jot-s3-secret jot-cookie-secret \
-              jot-oauth-client-id jot-oauth-client-secret; do
+              jot-oauth-client-id jot-oauth-client-secret \
+              jot-oauth-cli-client-id; do
        gcloud secrets add-iam-policy-binding $s \
          --member="serviceAccount:jot-server@$GCP_PROJECT.iam.gserviceaccount.com" \
          --role="roles/secretmanager.secretAccessor"
@@ -78,6 +80,8 @@ JOT_AUTH_SESSION_TTL=8h" \
        --set-secrets="JOT_STORAGE_ACCESS_KEY_ID=jot-s3-access:latest,\
 JOT_STORAGE_SECRET_ACCESS_KEY=jot-s3-secret:latest,\
 JOT_AUTH_AUDIENCE=jot-oauth-client-id:latest,\
+JOT_AUTH_CLIENT_ID=jot-oauth-client-id:latest,\
+JOT_AUTH_CLI_CLIENT_ID=jot-oauth-cli-client-id:latest,\
 JOT_AUTH_CLIENT_SECRET=jot-oauth-client-secret:latest,\
 JOT_AUTH_COOKIE_SECRET=jot-cookie-secret:latest"
 

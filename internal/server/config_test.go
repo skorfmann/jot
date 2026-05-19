@@ -31,3 +31,28 @@ auth:
 		t.Fatalf("session_ttl = %s, want 1h", cfg.Auth.SessionTTL)
 	}
 }
+
+func TestLoadConfigSupportsCLIClientIDEnv(t *testing.T) {
+	t.Setenv("JOT_AUTH_CLI_CLIENT_ID", "cli-client")
+	dir := t.TempDir()
+	path := filepath.Join(dir, "jot.yaml")
+	err := os.WriteFile(path, []byte(`
+server:
+  base_url: http://localhost:8080
+storage:
+  bucket: jot
+auth:
+  mode: dev
+  cookie_secret: 0000000000000000000000000000000000000000000000000000000000000000
+`), 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := LoadConfig(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Auth.CLIClientID != "cli-client" {
+		t.Fatalf("cli_client_id = %q, want cli-client", cfg.Auth.CLIClientID)
+	}
+}

@@ -74,6 +74,7 @@ func applyEnv(cfg *Config) {
 	setString(&cfg.Auth.Issuer, "JOT_AUTH_ISSUER")
 	setString(&cfg.Auth.Audience, "JOT_AUTH_AUDIENCE")
 	setString(&cfg.Auth.ClientID, "JOT_AUTH_CLIENT_ID")
+	setString(&cfg.Auth.CLIClientID, "JOT_AUTH_CLI_CLIENT_ID")
 	setString(&cfg.Auth.ClientSecret, "JOT_AUTH_CLIENT_SECRET")
 	setString(&cfg.Auth.CookieSecret, "JOT_AUTH_COOKIE_SECRET")
 	if v := os.Getenv("JOT_AUTH_SESSION_TTL"); v != "" {
@@ -145,6 +146,7 @@ auth:
   issuer: https://accounts.google.com
   audience: 1234567890-abc.apps.googleusercontent.com
   client_id: 1234567890-abc.apps.googleusercontent.com
+  cli_client_id: 1234567890-cli.apps.googleusercontent.com
   client_secret: GOCSPX-replace-me
   cookie_secret: replace-with-openssl-rand-hex-32
   session_ttl: 8h

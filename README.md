@@ -82,6 +82,8 @@ Dev mode treats every request as `dev@local` and logs a startup warning. Do not 
 - `JOT_STORAGE_SECRET_ACCESS_KEY`
 - `JOT_AUTH_ISSUER`
 - `JOT_AUTH_AUDIENCE`
+- `JOT_AUTH_CLIENT_ID`
+- `JOT_AUTH_CLI_CLIENT_ID`
 - `JOT_AUTH_CLIENT_SECRET`
 - `JOT_AUTH_COOKIE_SECRET`
 - `JOT_AUTH_AUTHORIZE_HD`

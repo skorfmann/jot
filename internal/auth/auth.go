@@ -31,6 +31,7 @@ type RawConfig struct {
 	Issuer       string        `yaml:"issuer"`
 	Audience     string        `yaml:"audience"`
 	ClientID     string        `yaml:"client_id"`
+	CLIClientID  string        `yaml:"cli_client_id"`
 	ClientSecret string        `yaml:"client_secret"`
 	CookieSecret string        `yaml:"cookie_secret"`
 	SessionTTL   time.Duration `yaml:"session_ttl"`
@@ -51,6 +52,7 @@ type Authenticator struct {
 	cfg       RawConfig
 	provider  *oidc.Provider
 	verifier  *oidc.IDTokenVerifier
+	bearer    []*oidc.IDTokenVerifier
 	oauth     *oauth2.Config
 	jwtSecret []byte
 }
@@ -77,6 +79,9 @@ func New(ctx context.Context, cfg RawConfig, baseURL string) (*Authenticator, er
 	if cfg.ClientID == "" {
 		cfg.ClientID = cfg.Audience
 	}
+	if cfg.CLIClientID == "" {
+		cfg.CLIClientID = cfg.ClientID
+	}
 	if cfg.CookieSecret == "" {
 		return nil, errors.New("auth.cookie_secret is required")
 	}
@@ -92,10 +97,16 @@ func New(ctx context.Context, cfg RawConfig, baseURL string) (*Authenticator, er
 	if err != nil {
 		return nil, err
 	}
+	webVerifier := provider.Verifier(&oidc.Config{ClientID: cfg.Audience})
+	bearer := []*oidc.IDTokenVerifier{webVerifier}
+	if cfg.CLIClientID != "" && cfg.CLIClientID != cfg.Audience {
+		bearer = append(bearer, provider.Verifier(&oidc.Config{ClientID: cfg.CLIClientID}))
+	}
 	return &Authenticator{
 		cfg:      cfg,
 		provider: provider,
-		verifier: provider.Verifier(&oidc.Config{ClientID: cfg.Audience}),
+		verifier: webVerifier,
+		bearer:   bearer,
 		oauth: &oauth2.Config{
 			ClientID:     cfg.ClientID,
 			ClientSecret: cfg.ClientSecret,
@@ -111,9 +122,13 @@ func (a *Authenticator) ConfigResponse() map[string]any {
 	if a.cfg.Mode == "dev" {
 		return map[string]any{"mode": "dev", "scopes": []string{oidc.ScopeOpenID, "email", "profile"}}
 	}
+	clientID := a.cfg.ClientID
+	if a.cfg.CLIClientID != "" {
+		clientID = a.cfg.CLIClientID
+	}
 	return map[string]any{
 		"issuer":    a.cfg.Issuer,
-		"client_id": a.cfg.ClientID,
+		"client_id": clientID,
 		"scopes":    []string{oidc.ScopeOpenID, "email", "profile"},
 	}
 }
@@ -137,7 +152,7 @@ func (a *Authenticator) VerifyBearer(ctx context.Context, token string) (Identit
 		id := Identity{Email: "dev@local", Claims: map[string]any{"email": "dev@local", "hd": "local"}}
 		return id, nil
 	}
-	idToken, err := a.verifier.Verify(ctx, token)
+	idToken, err := a.verifyBearerToken(ctx, token)
 	if err != nil {
 		return Identity{}, err
 	}
@@ -150,6 +165,23 @@ func (a *Authenticator) VerifyBearer(ctx context.Context, token string) (Identit
 		return Identity{}, err
 	}
 	return id, nil
+}
+
+func (a *Authenticator) verifyBearerToken(ctx context.Context, token string) (*oidc.IDToken, error) {
+	var firstErr error
+	for _, verifier := range a.bearer {
+		idToken, err := verifier.Verify(ctx, token)
+		if err == nil {
+			return idToken, nil
+		}
+		if firstErr == nil {
+			firstErr = err
+		}
+	}
+	if firstErr != nil {
+		return nil, firstErr
+	}
+	return nil, errors.New("no bearer token verifier configured")
 }
 
 func (a *Authenticator) VerifySession(raw string) (Identity, error) {

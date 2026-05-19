@@ -13,3 +13,23 @@ func TestAuthorizeRequiredClaims(t *testing.T) {
 		t.Fatal("expected authorization failure")
 	}
 }
+
+func TestConfigResponseUsesCLIClientID(t *testing.T) {
+	a := &Authenticator{cfg: RawConfig{Issuer: "https://accounts.example.com", ClientID: "web-client", CLIClientID: "cli-client"}}
+
+	got := a.ConfigResponse()
+
+	if got["client_id"] != "cli-client" {
+		t.Fatalf("client_id = %v, want cli-client", got["client_id"])
+	}
+}
+
+func TestConfigResponseFallsBackToBrowserClientID(t *testing.T) {
+	a := &Authenticator{cfg: RawConfig{Issuer: "https://accounts.example.com", ClientID: "web-client"}}
+
+	got := a.ConfigResponse()
+
+	if got["client_id"] != "web-client" {
+		t.Fatalf("client_id = %v, want web-client", got["client_id"])
+	}
+}

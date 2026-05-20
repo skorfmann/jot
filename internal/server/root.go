@@ -58,11 +58,19 @@ func (s *Server) handleRootIndex(w http.ResponseWriter, r *http.Request, id auth
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
 		return
 	}
+	htmlBody := body.Bytes()
+	if r.Method == http.MethodGet {
+		htmlBody, err = s.injectOverlayHTML(htmlBody, s.overlayBootstrapForRequest(r, nil))
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+			return
+		}
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "private, max-age=0, must-revalidate")
 	w.WriteHeader(http.StatusOK)
 	if r.Method != http.MethodHead {
-		_, _ = w.Write(body.Bytes())
+		_, _ = w.Write(htmlBody)
 	}
 }
 

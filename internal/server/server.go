@@ -76,6 +76,7 @@ func (s *Server) StartBackground(ctx context.Context) {
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("/_health", s.handleHealth)
+	s.mux.HandleFunc("/_jot/", s.handleOverlayAsset)
 	s.mux.HandleFunc("/_api/version", s.handleVersion)
 	s.mux.HandleFunc("/_api/auth/config", s.handleAuthConfig)
 	s.mux.HandleFunc("/_auth/login", s.auth.LoginHandler(s.cfg.Server.InsecureHTTP))
@@ -418,10 +419,21 @@ func (s *Server) handleContent(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/"+slug+resolved.RedirectTo, http.StatusMovedPermanently)
 		return
 	}
+	headers := manifest.HeadersForPath(m, resolved.Path)
+	contentType := resolved.File.ContentType
+	if override, ok := headerValue(headers, "Content-Type"); ok {
+		contentType = override
+	}
+	injectOverlay := shouldInjectOverlay(r.Method, contentType)
 	etag := `"` + resolved.File.SHA256 + `"`
-	if r.Header.Get("If-None-Match") == etag {
+	if !injectOverlay && r.Header.Get("If-None-Match") == etag {
 		w.WriteHeader(http.StatusNotModified)
 		return
+	}
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Cache-Control", defaultCacheControl(contentType))
+	for k, v := range headers {
+		w.Header().Set(k, v)
 	}
 	body, _, err := s.store.GetBlob(r.Context(), resolved.File.SHA256)
 	if err != nil {
@@ -429,12 +441,28 @@ func (s *Server) handleContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer body.Close()
-	w.Header().Set("ETag", etag)
-	w.Header().Set("Content-Type", resolved.File.ContentType)
-	w.Header().Set("Cache-Control", defaultCacheControl(resolved.File.ContentType))
-	for k, v := range manifest.HeadersForPath(m, resolved.Path) {
-		w.Header().Set(k, v)
+	if injectOverlay {
+		original, err := io.ReadAll(body)
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+			return
+		}
+		injected, err := s.injectOverlayHTML(original, s.overlayBootstrapForRequest(r, m))
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+			return
+		}
+		etag = `"` + manifest.Hash(injected) + `"`
+		w.Header().Set("ETag", etag)
+		if r.Header.Get("If-None-Match") == etag {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+		w.WriteHeader(resolved.StatusCode)
+		_, _ = w.Write(injected)
+		return
 	}
+	w.Header().Set("ETag", etag)
 	w.WriteHeader(resolved.StatusCode)
 	if r.Method != http.MethodHead {
 		_, _ = io.Copy(w, body)

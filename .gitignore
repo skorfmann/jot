@@ -4,6 +4,8 @@
 /dist/
 /bin/
 /coverage.out
+node_modules/
+*.tsbuildinfo
 
 # Local jot push context
 .jot/

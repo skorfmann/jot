@@ -14,3 +14,13 @@ This file tracks implementation decisions, tradeoffs, and spec interpretations t
 - The Docker image is still `FROM scratch`, but it includes CA certificates copied from the build stage because OIDC discovery and JWKS retrieval require HTTPS trust roots.
 - The initial Homebrew tap formulas build from a pinned source archive because there is not yet a tagged binary release with checksums. The main repo still includes a release workflow that publishes binary artifacts; after the first release, the tap formulas should be switched to the binary URLs/checksums described in the spec.
 - Cut `v0.1.0` and replaced the bootstrap Homebrew formulas with binary-release formulas. The local tap install tests confirmed the formulas now install the published binaries directly and no longer require Go as a build dependency.
+
+## 2026-05-20
+
+- Implemented the overlay as `web/overlay`, a React + TypeScript + Vite subproject, and embedded the built `dist` output through a small Go package in that same directory. This keeps the source project where the issue asked for it while avoiding `go:embed` path limitations.
+- Treated the authenticated root deploy index (`/`) as eligible HTML and inject it with `slug`, `deployId`, and deploy metadata set to `null`. The issue excludes system/auth/api/health endpoints but does not explicitly exclude the root HTML page.
+- The server buffers only eligible HTML responses so it can inject the mount node, bootstrap JSON, and hashed asset references, then computes an ETag for the transformed HTML. Non-HTML responses keep the existing streaming passthrough path.
+- The CSS asset is injected as a hashed preload reference in host HTML, then the overlay script attaches that stylesheet inside the Shadow DOM. This satisfies the hashed CSS reference requirement without applying overlay styles to the host page.
+- Mobile sheet styles use both viewport-width and device-width media queries because injected pages may not include their own viewport meta tag.
+- The overlay relies on the existing authenticated `/_api/slugs/{slug}/history` and `/_api/deploys` endpoints. No new read APIs were added for v1.
+- The overlay does not rewrite user-provided Content-Security-Policy headers. Very restrictive CSP on a deployed page may block the injected module script even though the asset is same-origin.

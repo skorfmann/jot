@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jot Project Map</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1d252c;
+      --muted: #5e6a72;
+      --line: #d8dee3;
+      --paper: #fbfcfd;
+      --panel: #ffffff;
+      --accent: #136f63;
+      --accent-2: #8a4f14;
+      --accent-3: #345995;
+      --accent-4: #7a3f6a;
+      --soft-green: #e8f4f1;
+      --soft-blue: #e8eef7;
+      --soft-amber: #fff3df;
+      --soft-violet: #f2eaf1;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    .wrap {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+    }
+
+    .top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: end;
+      padding: 34px 0 24px;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 {
+      font-size: clamp(28px, 4vw, 48px);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      max-width: 720px;
+      color: var(--muted);
+      margin-top: 10px;
+      font-size: 17px;
+    }
+
+    .meta {
+      display: grid;
+      gap: 6px;
+      min-width: 220px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .meta strong {
+      color: var(--ink);
+      font-weight: 650;
+    }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 0 0 18px;
+    }
+
+    nav a {
+      color: var(--ink);
+      text-decoration: none;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 7px 10px;
+      background: #fff;
+      font-size: 13px;
+    }
+
+    main {
+      padding: 28px 0 56px;
+    }
+
+    section {
+      margin-top: 30px;
+      scroll-margin-top: 16px;
+    }
+
+    section:first-child { margin-top: 0; }
+
+    h2 {
+      font-size: 22px;
+      letter-spacing: 0;
+      margin-bottom: 14px;
+    }
+
+    h3 {
+      font-size: 15px;
+      letter-spacing: 0;
+      margin-bottom: 8px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .span-3 { grid-column: span 3; }
+    .span-4 { grid-column: span 4; }
+    .span-6 { grid-column: span 6; }
+    .span-8 { grid-column: span 8; }
+    .span-12 { grid-column: span 12; }
+
+    .pill {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 12px;
+      font-weight: 650;
+      margin-bottom: 10px;
+    }
+
+    .green { background: var(--soft-green); color: var(--accent); }
+    .blue { background: var(--soft-blue); color: var(--accent-3); }
+    .amber { background: var(--soft-amber); color: var(--accent-2); }
+    .violet { background: var(--soft-violet); color: var(--accent-4); }
+
+    ul {
+      margin: 8px 0 0;
+      padding-left: 18px;
+    }
+
+    li { margin: 4px 0; }
+
+    code {
+      font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: #f4f6f8;
+      border: 1px solid #e1e6ea;
+      border-radius: 4px;
+      padding: 1px 4px;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .step {
+      min-height: 98px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 12px;
+      position: relative;
+    }
+
+    .step b {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+
+    .step p {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+    }
+
+    th {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: .04em;
+      background: #f7f9fa;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    @media (max-width: 900px) {
+      .top { grid-template-columns: 1fr; }
+      .span-3, .span-4, .span-6, .span-8 { grid-column: span 12; }
+      .flow { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="top">
+        <div>
+          <h1>Jot Project Map</h1>
+          <p class="subtitle">High-level implementation map for the private static-hosting service, optimized for quick human and agent orientation.</p>
+        </div>
+        <div class="meta">
+          <span><strong>Version:</strong> 0.1.8</span>
+          <span><strong>Schema:</strong> Manifest v1</span>
+          <span><strong>Updated:</strong> 2026-05-20</span>
+          <span class="status"><span class="dot"></span>Active CLI/server project</span>
+        </div>
+      </div>
+      <nav aria-label="Project map navigation">
+        <a href="#overview">Overview</a>
+        <a href="#modules">Modules</a>
+        <a href="#features">Features</a>
+        <a href="#storage">Storage</a>
+        <a href="#auth">Auth</a>
+        <a href="#operations">Operations</a>
+        <a href="#followups">Follow-ups</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="overview">
+      <h2>Overview</h2>
+      <div class="grid">
+        <article class="card span-4">
+          <span class="pill green">Product</span>
+          <h3>Private static hosting</h3>
+          <p>Push a file or folder, receive a private URL, and serve it behind the same OIDC trust boundary as the management API.</p>
+        </article>
+        <article class="card span-4">
+          <span class="pill blue">Runtime</span>
+          <h3>Single Go server</h3>
+          <p>The server is stateless on local disk. Object storage owns blobs, manifests, current pointers, and trash.</p>
+        </article>
+        <article class="card span-4">
+          <span class="pill amber">Distribution</span>
+          <h3>CLI-first workflow</h3>
+          <p>Release binaries are published to GitHub Releases and installed through the custom Homebrew tap.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="workflow">
+      <h2>Publish Workflow</h2>
+      <div class="flow" aria-label="Publish workflow">
+        <div class="step"><b>1. Login</b><p>CLI discovers server auth config and completes OIDC PKCE login.</p></div>
+        <div class="step"><b>2. Hash</b><p>CLI walks files, normalizes paths, computes SHA-256 hashes, and prepares manifest metadata.</p></div>
+        <div class="step"><b>3. Check</b><p>Server reports missing hashes and returns signed PUT URLs for missing blobs.</p></div>
+        <div class="step"><b>4. Upload</b><p>CLI uploads missing blobs directly to object storage through signed URLs.</p></div>
+        <div class="step"><b>5. Commit</b><p>Server stores the manifest and atomically updates the slug current pointer.</p></div>
+      </div>
+    </section>
+
+    <section id="modules">
+      <h2>Module Map</h2>
+      <table>
+        <thead>
+          <tr><th>Path</th><th>Responsibility</th><th>Key Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>cmd/jot</code></td>
+            <td>CLI entrypoint</td>
+            <td>Delegates to <code>internal/cli</code>.</td>
+          </tr>
+          <tr>
+            <td><code>cmd/jot-server</code></td>
+            <td>Server entrypoint</td>
+            <td>Loads config, opens storage, wires auth, starts background work.</td>
+          </tr>
+          <tr>
+            <td><code>internal/cli</code></td>
+            <td>CLI commands and API client</td>
+            <td>Login, push, list, inspect, history, rollback, remove, whoami, init.</td>
+          </tr>
+          <tr>
+            <td><code>internal/server</code></td>
+            <td>HTTP server and API handlers</td>
+            <td>Deploy API, content serving, config, logging, GC, versioning.</td>
+          </tr>
+          <tr>
+            <td><code>internal/auth</code></td>
+            <td>OIDC and cookie authentication</td>
+            <td>Bearer tokens, browser sessions, authorize rules, dev mode.</td>
+          </tr>
+          <tr>
+            <td><code>internal/manifest</code></td>
+            <td>Manifest model and path resolution</td>
+            <td>ULIDs, random slugs, path normalization, SPA fallback, 404 handling.</td>
+          </tr>
+          <tr>
+            <td><code>internal/storage</code></td>
+            <td>Object-store abstraction</td>
+            <td>Go CDK blob backend, GCS signing, S3-compatible fallback, trash GC.</td>
+          </tr>
+          <tr>
+            <td><code>deploy</code></td>
+            <td>Deployment assets</td>
+            <td>Dockerfile and local Garage compose stack.</td>
+          </tr>
+          <tr>
+            <td><code>docs</code></td>
+            <td>Operator prompts and setup docs</td>
+            <td>GCP agent prompt uses Cloud Run, GCS, Secret Manager, and OIDC.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="features">
+      <h2>Feature Surface</h2>
+      <div class="grid">
+        <article class="card span-6">
+          <span class="pill green">CLI commands</span>
+          <ul>
+            <li><code>jot login</code>, <code>jot logout</code>, <code>jot whoami</code></li>
+            <li><code>jot push</code> with title, summary, tags, actor, SPA fallback, headers, JSON</li>
+            <li><code>jot ls</code> with full URLs, filters, local context, JSON</li>
+            <li><code>jot inspect</code>, <code>jot history</code>, <code>jot rollback</code>, <code>jot rm</code></li>
+            <li><code>jot init server</code> config scaffold</li>
+          </ul>
+        </article>
+        <article class="card span-6">
+          <span class="pill blue">Server routes</span>
+          <ul>
+            <li><code>/_health</code>, <code>/_api/version</code>, <code>/_api/auth/config</code></li>
+            <li><code>/_auth/login</code>, <code>/_auth/callback</code></li>
+            <li><code>/_api/deploys:check</code>, <code>/_api/deploys/&lt;id&gt;</code></li>
+            <li><code>/_api/slugs/&lt;slug&gt;/history</code>, rollback, delete</li>
+            <li><code>/&lt;slug&gt;/...</code> protected content serving</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="storage">
+      <h2>Storage And Data Model</h2>
+      <div class="grid">
+        <article class="card span-4">
+          <span class="pill amber">Bucket layout</span>
+          <ul>
+            <li><code>blobs/sha256/&lt;hash&gt;</code></li>
+            <li><code>manifests/&lt;slug&gt;/&lt;id&gt;.json</code></li>
+            <li><code>slugs/&lt;slug&gt;/current</code></li>
+            <li><code>_trash/&lt;hash&gt;</code></li>
+          </ul>
+        </article>
+        <article class="card span-4">
+          <span class="pill green">Limits</span>
+          <ul>
+            <li>100 files per push</li>
+            <li>1 GiB per file</li>
+            <li>3 GiB per push</li>
+            <li>10 manifests retained per slug</li>
+          </ul>
+        </article>
+        <article class="card span-4">
+          <span class="pill violet">Backends</span>
+          <ul>
+            <li>GCS through <code>gs://...</code> Go CDK URLs</li>
+            <li>IAM <code>signBlob</code> for GCS signed URLs</li>
+            <li>S3-compatible explicit config for Garage/R2</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="auth">
+      <h2>Auth Model</h2>
+      <div class="grid">
+        <article class="card span-6">
+          <span class="pill blue">CLI</span>
+          <p>Uses OIDC loopback PKCE. Tokens are stored per server in the OS keychain with a file fallback. Google deployments use a Desktop app OAuth client for CLI login.</p>
+        </article>
+        <article class="card span-6">
+          <span class="pill green">Browser</span>
+          <p>Uses a web OAuth client and signed <code>jot_session</code> cookie. Claims are checked on every authenticated request.</p>
+        </article>
+        <article class="card span-12">
+          <span class="pill amber">Authorize rules</span>
+          <p>Authorization can match required claims such as hosted domain, or allowed email domains. Production policy is configured outside public repo files.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="operations">
+      <h2>Operations</h2>
+      <table>
+        <thead>
+          <tr><th>Area</th><th>Current Approach</th><th>Watch Items</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>GCP</td>
+            <td>Cloud Run, GCS bucket, Secret Manager, service account IAM.</td>
+            <td>Keep bucket and service in the same region. Do not commit private domain or OAuth IDs.</td>
+          </tr>
+          <tr>
+            <td>Release</td>
+            <td>Git tags trigger GitHub Release assets, Docker image, and Homebrew tap update.</td>
+            <td>Homebrew may be updated manually from release checksums if the Docker step is slow.</td>
+          </tr>
+          <tr>
+            <td>Local demo</td>
+            <td>Garage compose stack in <code>deploy/local</code>, auth dev mode.</td>
+            <td>Access key and secret are local demo only, not GCS production configuration.</td>
+          </tr>
+          <tr>
+            <td>Verification</td>
+            <td><code>go test ./...</code>, Homebrew formula tests, CLI smoke tests.</td>
+            <td>For frontend or browser behavior, verify with a real browser session when routes change.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="followups">
+      <h2>Open Follow-ups</h2>
+      <div class="grid">
+        <article class="card span-3">
+          <span class="pill blue">API</span>
+          <p>Return deploy URLs from list API instead of deriving them in the CLI.</p>
+        </article>
+        <article class="card span-3">
+          <span class="pill amber">Uploads</span>
+          <p>Review 15 minute signed URL expiry for slow multi-GB uploads.</p>
+        </article>
+        <article class="card span-3">
+          <span class="pill violet">GC</span>
+          <p>Make GC cadence configurable if operators need a different sweep schedule.</p>
+        </article>
+        <article class="card span-3">
+          <span class="pill green">Compatibility</span>
+          <p>Use <code>/_api/version</code> data for client compatibility warnings or enforcement.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

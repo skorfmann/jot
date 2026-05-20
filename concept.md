@@ -406,7 +406,7 @@ Operators run any log shipper they like.
 ### Versioning
 
 - Manifest schema includes `schema_version`. Server refuses manifests with an unknown major version. Additive changes within a major are safe.
-- `GET /_api/version` → `{"server":"0.1.6","manifest_schema":1,"min_cli":"0.1.0"}`. The endpoint is available for clients and operational checks; CLI compatibility enforcement is a follow-up.
+- `GET /_api/version` → `{"server":"0.1.7","manifest_schema":1,"min_cli":"0.1.0"}`. The endpoint is available for clients and operational checks; CLI compatibility enforcement is a follow-up.
 
 ### Content type & encoding
 

@@ -60,7 +60,7 @@ jot whoami
 jot logout
 ```
 
-Use `--json` on `push`, `ls`, `inspect`, and `history` for agent-friendly output.
+`jot ls` prints the full private URL for each deploy. Use `--json` on `push`, `ls`, `inspect`, and `history` for agent-friendly output.
 
 ## Auth
 

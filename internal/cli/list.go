@@ -21,7 +21,7 @@ func (r *Root) listCmd() *cobra.Command {
 	var limit int
 	cmd := &cobra.Command{
 		Use:   "ls",
-		Short: "List recent deploys",
+		Short: "List recent deploys with their private URLs",
 		Example: `  jot ls
   jot ls --mine
   jot ls --local
@@ -54,11 +54,12 @@ func (r *Root) listCmd() *cobra.Command {
 			if err := client.request(cmd.Context(), http.MethodGet, "/_api/deploys?"+q.Encode(), nil, &res); err != nil {
 				return err
 			}
+			deploys := listedDeploys(client.server, res.Deploys)
 			if jsonOut {
-				return json.NewEncoder(r.out).Encode(res.Deploys)
+				return json.NewEncoder(r.out).Encode(deploys)
 			}
-			for _, d := range res.Deploys {
-				r.printf("%s  %-12s  %-24s  %s\n", d.CreatedAt.Format("2006-01-02 15:04"), d.Slug, d.CreatedBy, firstNonEmpty(d.Title, d.Summary))
+			for _, d := range deploys {
+				r.printf("%s  %-48s  %-24s  %s\n", d.CreatedAt.Format("2006-01-02 15:04"), d.URL, d.CreatedBy, firstNonEmpty(d.Title, d.Summary))
 			}
 			return nil
 		},
@@ -70,6 +71,29 @@ func (r *Root) listCmd() *cobra.Command {
 	cmd.Flags().IntVar(&limit, "limit", 50, "Maximum deploys to return. Default: 50.")
 	cmd.Flags().BoolVar(&jsonOut, "json", false, "Emit JSON.")
 	return cmd
+}
+
+type listedDeploy struct {
+	manifest.Manifest
+	URL string `json:"url"`
+}
+
+func listedDeploys(serverURL string, manifests []manifest.Manifest) []listedDeploy {
+	deploys := make([]listedDeploy, 0, len(manifests))
+	for _, m := range manifests {
+		deploys = append(deploys, listedDeploy{
+			Manifest: m,
+			URL:      deployURL(serverURL, m.Slug),
+		})
+	}
+	return deploys
+}
+
+func deployURL(serverURL, slug string) string {
+	if slug == "" {
+		return ""
+	}
+	return strings.TrimRight(serverURL, "/") + "/" + slug + "/"
 }
 
 func (r *Root) inspectCmd() *cobra.Command {
@@ -256,7 +280,7 @@ func (r *Root) listLocal(jsonOut bool) error {
 		return err
 	}
 	for _, p := range pushes {
-		r.printf("%s  %-12s  %-24s  %s\n", p.PushedAt.Format("2006-01-02 15:04"), p.Slug, p.PushedBy, firstNonEmpty(p.Title, p.Summary, p.URL))
+		r.printf("%s  %-48s  %-24s  %s\n", p.PushedAt.Format("2006-01-02 15:04"), firstNonEmpty(p.URL, p.Slug), p.PushedBy, firstNonEmpty(p.Title, p.Summary))
 	}
 	return nil
 }

@@ -66,6 +66,8 @@ jot logout
 
 Production mode uses OIDC ID tokens for the CLI and signed `jot_session` cookies for browsers. Both are checked by the same authorization rule.
 
+The authenticated root path (`/`) renders a server-side list of current deploys with full private URLs, metadata, search, and a "mine" filter.
+
 For Google OAuth, use two clients:
 
 - A Web application client for browser sessions, with `https://jot.example.com/_auth/callback` as an authorized redirect URI.

@@ -30,7 +30,7 @@ The result is a private URL. The content is not public, not indexed, and not mix
 - Language: Go.
 - CLI entrypoint: `cmd/jot`.
 - Server entrypoint: `cmd/jot-server`.
-- Current version: `0.1.8`.
+- Current version: `0.1.9`.
 - Primary install path: Homebrew tap `skorfmann/homebrew-jot`.
 - Primary production architecture: Cloud Run plus GCS plus OIDC.
 - Local demo architecture: Docker Compose plus Garage plus dev auth mode.
@@ -40,6 +40,8 @@ The result is a private URL. The content is not public, not indexed, and not mix
 The CLI authenticates with OIDC, hashes local files, asks the server which blobs are missing, uploads missing blobs directly to object storage through signed URLs, then asks the server to commit a manifest.
 
 The server validates the manifest, writes immutable deploy metadata, and atomically updates the slug's current pointer. Browser requests resolve the slug's current manifest, verify auth through a signed session cookie or bearer token, and serve the requested blob.
+
+The root path (`/`) is the only built-in browser UI. It renders an authenticated list of current deploys, not raw blobs.
 
 State lives in the bucket:
 
@@ -73,6 +75,8 @@ State lives in the bucket:
 - `jot init server`
 
 `jot ls` should show full private URLs in human output. `--json` is intended for agents.
+
+The browser root dashboard should show full private URLs, current deploy metadata, search, and a "mine" filter.
 
 ## Current Limits
 

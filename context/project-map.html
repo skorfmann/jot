@@ -248,7 +248,7 @@
           <p class="subtitle">High-level implementation map for the private static-hosting service, optimized for quick human and agent orientation.</p>
         </div>
         <div class="meta">
-          <span><strong>Version:</strong> 0.1.8</span>
+          <span><strong>Version:</strong> 0.1.9</span>
           <span><strong>Schema:</strong> Manifest v1</span>
           <span><strong>Updated:</strong> 2026-05-20</span>
           <span class="status"><span class="dot"></span>Active CLI/server project</span>
@@ -273,7 +273,7 @@
         <article class="card span-4">
           <span class="pill green">Product</span>
           <h3>Private static hosting</h3>
-          <p>Push a file or folder, receive a private URL, and serve it behind the same OIDC trust boundary as the management API.</p>
+          <p>Push a file or folder, receive a private URL, and serve it behind the same OIDC trust boundary as the management API and root dashboard.</p>
         </article>
         <article class="card span-4">
           <span class="pill blue">Runtime</span>
@@ -375,6 +375,7 @@
             <li><code>/_auth/login</code>, <code>/_auth/callback</code></li>
             <li><code>/_api/deploys:check</code>, <code>/_api/deploys/&lt;id&gt;</code></li>
             <li><code>/_api/slugs/&lt;slug&gt;/history</code>, rollback, delete</li>
+            <li><code>/</code> authenticated current-deploy dashboard</li>
             <li><code>/&lt;slug&gt;/...</code> protected content serving</li>
           </ul>
         </article>

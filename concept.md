@@ -223,7 +223,7 @@ https://jot.example.com/
 ├── /_api/...                   # management API
 ├── /_auth/...                  # OAuth handlers
 ├── /_health                    # health check
-└── /                           # 404 by default
+└── /                           # authenticated current-deploy dashboard
 ```
 
 No subdomains. No previews. One slug per URL. Each slug is its own page set.
@@ -242,6 +242,8 @@ For `GET /<slug>/<rest>`:
 `GET /<slug>` (no trailing slash) → **301** to `/<slug>/`.
 
 Asset requests (no `Accept: text/html`) on unauthenticated visits return **401** with a small JSON body, not a redirect. HTML requests get the 302 to login.
+
+`GET /` is the only built-in browser UI. It is server-rendered and lists current deploys with title, summary, tags, owner, file count, total size, search, and a "mine" filter. It deliberately lists deploys/pages, not raw content-addressed blobs.
 
 ### Caching
 
@@ -406,7 +408,7 @@ Operators run any log shipper they like.
 ### Versioning
 
 - Manifest schema includes `schema_version`. Server refuses manifests with an unknown major version. Additive changes within a major are safe.
-- `GET /_api/version` → `{"server":"0.1.8","manifest_schema":1,"min_cli":"0.1.0"}`. The endpoint is available for clients and operational checks; CLI compatibility enforcement is a follow-up.
+- `GET /_api/version` → `{"server":"0.1.9","manifest_schema":1,"min_cli":"0.1.0"}`. The endpoint is available for clients and operational checks; CLI compatibility enforcement is a follow-up.
 
 ### Content type & encoding
 

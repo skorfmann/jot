@@ -3,7 +3,7 @@
 Purpose: compact, LLM-friendly project memory for future implementation sessions. Keep this file factual, public, and free of private deployment domains, OAuth IDs, secrets, and user-specific identifiers.
 
 Last updated: 2026-05-20
-Current code version: 0.1.8
+Current code version: 0.1.9
 Repository: github.com/skorfmann/jot
 
 ## Current State
@@ -70,6 +70,7 @@ Repository: github.com/skorfmann/jot
   - `DELETE /_api/slugs/<slug>`
   - `GET /_api/whoami`
 - Static content serving under `/<slug>/...`.
+- Authenticated root dashboard at `/` lists current deploys with full URLs, metadata, search, and a "mine" filter.
 - HTML path resolution supports exact paths, extensionless `.html`, directory `index.html`, SPA fallback, and `/404.html`.
 - ETags and default cache-control headers are emitted on served blobs.
 - Background GC starts about one minute after boot and then runs every 24 hours.
@@ -96,7 +97,7 @@ Repository: github.com/skorfmann/jot
 
 ## Important Defaults
 
-- Version constant: `0.1.8`.
+- Version constant: `0.1.9`.
 - Manifest schema version: `1`.
 - Minimum CLI advertised by server: `0.1.0`.
 - History retained per slug: `10`.
@@ -154,6 +155,7 @@ Important environment overrides:
 - Main verification command: `go test ./...`.
 - CLI help tests assert examples are present.
 - CLI list tests assert full URL output for remote and local list paths.
+- Server root tests assert auth redirect behavior, current deploy rendering, search/mine filtering, and no raw blob keys in HTML.
 - Storage tests cover GCS endpoint detection and human limit formatting.
 - Server config tests cover duration parsing, CLI OAuth client envs, and Go CDK storage URL config.
 

@@ -372,7 +372,10 @@ func (s *Server) handleContent(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusUnauthorized, map[string]any{"error": "authentication required"})
 		return
 	}
-	_ = id
+	if r.URL.Path == "/" {
+		s.handleRootIndex(w, r, id)
+		return
+	}
 	parts := strings.SplitN(strings.TrimPrefix(r.URL.Path, "/"), "/", 2)
 	if len(parts) == 0 || parts[0] == "" {
 		http.NotFound(w, r)

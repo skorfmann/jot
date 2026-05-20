@@ -541,7 +541,7 @@ For operators running the server. Published to `ghcr.io/skorfmann/jot:<version>`
 
 ### Release pipeline
 
-Tagged releases use semver. CI on every `v*` tag: builds binaries, generates checksums, signs the checksum file with Cosign, publishes to GitHub Releases, pushes the Docker image, and opens a follow-up PR to the Homebrew tap repo bumping the formula's version and SHA.
+Tagged releases use semver. CI on every `v*` tag: builds binaries, generates checksums, signs the checksum file with Cosign, publishes to GitHub Releases, commits the Homebrew formula update directly to the tap repo, and pushes the Docker image.
 
 ---
 

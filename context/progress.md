@@ -92,8 +92,9 @@ Repository: github.com/skorfmann/jot
 - Docker image is built from `deploy/docker/Dockerfile`.
 - Local demo uses Garage via `deploy/local/docker-compose.yml`.
 - GCP deployment prompt lives in `docs/gcp-agent-prompt.md`.
-- Release workflow builds binaries, checksum file, Cosign bundle, GitHub Release assets, Docker image, and Homebrew tap update.
+- Release workflow builds binaries, checksum file, Cosign bundle, GitHub Release assets, direct Homebrew tap update, and Docker image.
 - Homebrew tap formulas install release binaries directly.
+- The release workflow requires `HOMEBREW_TAP_TOKEN` with write access to `skorfmann/homebrew-jot`; missing tap credentials should fail the release instead of silently skipping publication.
 
 ## Important Defaults
 

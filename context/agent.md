@@ -136,5 +136,5 @@ Use the real deployment URL only in local commands or secret/config operations, 
 - Add CLI compatibility warnings based on `/_api/version`.
 - Make GC cadence configurable.
 - Consider configurable signed upload URL expiry.
-- Add stronger release automation around Homebrew tap updates when Docker publish is slow.
+- Keep release automation resilient: publish the Homebrew tap directly after GitHub Release assets are available, before Docker publish.
 - Improve large-file smoke tests without committing large fixtures.

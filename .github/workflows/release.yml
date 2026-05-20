@@ -39,36 +39,35 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: dist/*
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: deploy/docker/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
-            ghcr.io/${{ github.repository }}:latest
-      - name: Open Homebrew tap PR
+      - name: Publish Homebrew tap
         env:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
           set -euo pipefail
           if [ -z "${HOMEBREW_TAP_TOKEN:-}" ]; then
-            echo "HOMEBREW_TAP_TOKEN is not configured; skipping tap PR"
-            exit 0
+            echo "HOMEBREW_TAP_TOKEN is required to publish skorfmann/homebrew-jot" >&2
+            exit 1
           fi
+          trap 'rm -rf tap' EXIT
+
           version="${GITHUB_REF_NAME#v}"
           checksum() {
-            awk -v name="$1" '$2 == name { print $1 }' dist/checksums.txt
+            local name="$1"
+            local sum
+            sum="$(awk -v name="$name" '$2 == name { print $1 }' dist/checksums.txt)"
+            if [ -z "$sum" ]; then
+              echo "missing checksum for $name" >&2
+              exit 1
+            fi
+            printf '%s' "$sum"
           }
-          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/skorfmann/homebrew-jot.git" tap
+
+          auth="$(printf 'x-access-token:%s' "$HOMEBREW_TAP_TOKEN" | base64 | tr -d '\n')"
+          auth_header="AUTHORIZATION: basic ${auth}"
+          tap_branch="main"
+          git -c "http.https://github.com/.extraheader=${auth_header}" \
+            clone --depth 1 --branch "$tap_branch" https://github.com/skorfmann/homebrew-jot.git tap
+
           cat > tap/Formula/jot.rb <<EOF
           class Jot < Formula
             desc "CLI for the Jot private static-hosting service"
@@ -105,14 +104,16 @@ jobs:
 
             def caveats
               <<~EOS
-                This formula installs jot, which on macOS shadows the BSD jot
+                This formula installs \`jot\`, which on macOS shadows the BSD \`jot\`
                 utility (a number-sequence generator). To use the BSD jot, invoke it as
                 /usr/bin/jot.
               EOS
             end
 
             test do
-              assert_match "Push private static artifacts", shell_output("#{bin}/jot --help")
+              output = shell_output("#{bin}/jot --help")
+              assert_match "Push private static artifacts", output
+              assert_match "Examples:", output
             end
           end
           EOF
@@ -155,15 +156,30 @@ jobs:
             end
           end
           EOF
+
           cd tap
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          branch="jot-${GITHUB_REF_NAME}"
-          git checkout -b "$branch"
           git add Formula/jot.rb Formula/jot-server.rb
+          if git diff --cached --quiet; then
+            echo "Homebrew tap is already current for ${GITHUB_REF_NAME}"
+            exit 0
+          fi
           git commit -m "Update jot to ${GITHUB_REF_NAME}"
-          git push -u origin "$branch"
-          gh pr create \
-            --repo skorfmann/homebrew-jot \
-            --title "Update jot to ${GITHUB_REF_NAME}" \
-            --body "Updates jot and jot-server formulas for ${GITHUB_REF_NAME}."
+          git -c "http.https://github.com/.extraheader=${auth_header}" \
+            push origin "HEAD:${tap_branch}"
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}:latest

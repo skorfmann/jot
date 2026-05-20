@@ -28,7 +28,7 @@ func main() {
 		logger.Error("config error", "event_type", "error", "error", err)
 		os.Exit(1)
 	}
-	store, err := storage.NewS3(ctx, cfg.Storage)
+	store, err := storage.New(ctx, cfg.Storage)
 	if err != nil {
 		logger.Error("storage error", "event_type", "error", "error", err)
 		os.Exit(1)

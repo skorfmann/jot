@@ -60,3 +60,31 @@ auth:
 		t.Fatalf("cli_client_secret = %q, want cli-secret", cfg.Auth.CLIClientSecret)
 	}
 }
+
+func TestLoadConfigSupportsGoCDKStorageURL(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "jot.yaml")
+	err := os.WriteFile(path, []byte(`
+server:
+  base_url: http://localhost:8080
+storage:
+  url: gs://jot-test?access_id=jot-server@example.iam.gserviceaccount.com
+  google_access_id: jot-server@example.iam.gserviceaccount.com
+auth:
+  mode: dev
+  cookie_secret: 0000000000000000000000000000000000000000000000000000000000000000
+`), 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := LoadConfig(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Storage.URL != "gs://jot-test?access_id=jot-server@example.iam.gserviceaccount.com" {
+		t.Fatalf("storage.url = %q", cfg.Storage.URL)
+	}
+	if cfg.Storage.GoogleAccessID != "jot-server@example.iam.gserviceaccount.com" {
+		t.Fatalf("storage.google_access_id = %q", cfg.Storage.GoogleAccessID)
+	}
+}

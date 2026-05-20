@@ -27,16 +27,18 @@ Steps:
      gcloud storage buckets create gs://jot-$GCP_PROJECT \
        --location=$REGION --uniform-bucket-level-access
 
-4. Create a service account and grant object access:
+4. Create a service account and grant object/signing access:
      gcloud iam service-accounts create jot-server --display-name="jot server"
      gcloud storage buckets add-iam-policy-binding gs://jot-$GCP_PROJECT \
        --member="serviceAccount:jot-server@$GCP_PROJECT.iam.gserviceaccount.com" \
        --role="roles/storage.objectAdmin"
+     gcloud iam service-accounts add-iam-policy-binding \
+       jot-server@$GCP_PROJECT.iam.gserviceaccount.com \
+       --member="serviceAccount:jot-server@$GCP_PROJECT.iam.gserviceaccount.com" \
+       --role="roles/iam.serviceAccountTokenCreator"
 
-5. Create HMAC credentials and store them in Secret Manager:
-     gcloud storage hmac create jot-server@$GCP_PROJECT.iam.gserviceaccount.com
-     echo -n "<accessId>" | gcloud secrets create jot-s3-access --data-file=-
-     echo -n "<secret>"   | gcloud secrets create jot-s3-secret --data-file=-
+5. Jot uses the Cloud Run service account for bucket access. Do not create
+   HMAC/S3 credentials for GCS.
 
 6. Create a cookie secret:
      openssl rand -hex 32 | gcloud secrets create jot-cookie-secret --data-file=-
@@ -54,8 +56,7 @@ Steps:
        echo -n "<cli-client-secret>" | gcloud secrets create jot-oauth-cli-client-secret --data-file=-
 
 8. Grant secret access:
-     for s in jot-s3-access jot-s3-secret jot-cookie-secret \
-              jot-oauth-client-id jot-oauth-client-secret \
+     for s in jot-cookie-secret jot-oauth-client-id jot-oauth-client-secret \
               jot-oauth-cli-client-id jot-oauth-cli-client-secret; do
        gcloud secrets add-iam-policy-binding $s \
          --member="serviceAccount:jot-server@$GCP_PROJECT.iam.gserviceaccount.com" \
@@ -72,15 +73,11 @@ Steps:
        --min-instances=1 \
        --max-instances=10 \
        --set-env-vars="JOT_SERVER_BASE_URL=https://$JOT_DOMAIN,\
-JOT_STORAGE_ENDPOINT=https://storage.googleapis.com,\
-JOT_STORAGE_BUCKET=jot-$GCP_PROJECT,\
-JOT_STORAGE_REGION=auto,\
+JOT_STORAGE_URL=gs://jot-$GCP_PROJECT?access_id=jot-server@$GCP_PROJECT.iam.gserviceaccount.com,\
 JOT_AUTH_ISSUER=https://accounts.google.com,\
 JOT_AUTH_AUTHORIZE_HD=$WORKSPACE_DOMAIN,\
 JOT_AUTH_SESSION_TTL=8h" \
-       --set-secrets="JOT_STORAGE_ACCESS_KEY_ID=jot-s3-access:latest,\
-JOT_STORAGE_SECRET_ACCESS_KEY=jot-s3-secret:latest,\
-JOT_AUTH_AUDIENCE=jot-oauth-client-id:latest,\
+       --set-secrets="JOT_AUTH_AUDIENCE=jot-oauth-client-id:latest,\
 JOT_AUTH_CLIENT_ID=jot-oauth-client-id:latest,\
 JOT_AUTH_CLI_CLIENT_ID=jot-oauth-cli-client-id:latest,\
 JOT_AUTH_CLI_CLIENT_SECRET=jot-oauth-cli-client-secret:latest,\

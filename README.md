@@ -42,7 +42,9 @@ jot init server > jot.yaml
 jot-server --config jot.yaml
 ```
 
-Jot expects S3-compatible object storage and OIDC configuration. It stores immutable blobs under `blobs/sha256/`, immutable manifests under `manifests/<slug>/<id>.json`, and an atomic current pointer under `slugs/<slug>/current`.
+Jot uses Go CDK blob storage and OIDC configuration. It stores immutable blobs under `blobs/sha256/`, immutable manifests under `manifests/<slug>/<id>.json`, and an atomic current pointer under `slugs/<slug>/current`.
+
+For GCS, prefer `storage.url: gs://<bucket>?access_id=<service-account-email>` and grant the Cloud Run service account `roles/storage.objectAdmin` on the bucket plus `roles/iam.serviceAccountTokenCreator` on itself. This avoids HMAC/S3 credentials entirely.
 
 ## CLI
 
@@ -76,6 +78,8 @@ Dev mode treats every request as `dev@local` and logs a startup warning. Do not 
 `jot-server` reads config from `--config`, `$JOT_CONFIG`, or `./jot.yaml`. Important environment overrides include:
 
 - `JOT_SERVER_BASE_URL`
+- `JOT_STORAGE_URL`
+- `JOT_STORAGE_GOOGLE_ACCESS_ID`
 - `JOT_STORAGE_ENDPOINT`
 - `JOT_STORAGE_BUCKET`
 - `JOT_STORAGE_ACCESS_KEY_ID`

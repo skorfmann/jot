@@ -12,12 +12,14 @@ import (
 var ErrNotFound = errors.New("not found")
 
 type Config struct {
-	Endpoint        string
-	Region          string
-	Bucket          string
-	AccessKeyID     string
-	SecretAccessKey string
-	ForcePathStyle  bool
+	URL             string `yaml:"url"`
+	GoogleAccessID  string `yaml:"google_access_id"`
+	Endpoint        string `yaml:"endpoint"`
+	Region          string `yaml:"region"`
+	Bucket          string `yaml:"bucket"`
+	AccessKeyID     string `yaml:"access_key_id"`
+	SecretAccessKey string `yaml:"secret_access_key"`
+	ForcePathStyle  bool   `yaml:"force_path_style"`
 }
 
 type BlobMeta struct {

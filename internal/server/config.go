@@ -64,6 +64,8 @@ func applyEnv(cfg *Config) {
 	setString(&cfg.Server.BaseURL, "JOT_SERVER_BASE_URL")
 	setInt(&cfg.Server.HistorySize, "JOT_SERVER_HISTORY_SIZE")
 	setBool(&cfg.Server.InsecureHTTP, "JOT_SERVER_INSECURE_HTTP")
+	setString(&cfg.Storage.URL, "JOT_STORAGE_URL")
+	setString(&cfg.Storage.GoogleAccessID, "JOT_STORAGE_GOOGLE_ACCESS_ID")
 	setString(&cfg.Storage.Endpoint, "JOT_STORAGE_ENDPOINT")
 	setString(&cfg.Storage.Region, "JOT_STORAGE_REGION")
 	setString(&cfg.Storage.Bucket, "JOT_STORAGE_BUCKET")
@@ -136,12 +138,10 @@ server:
   insecure_http: false
 
 storage:
-  endpoint: https://s3.amazonaws.com
-  region: auto
-  bucket: jot-prod
-  access_key_id: replace-me
-  secret_access_key: replace-me
-  force_path_style: false
+  # Prefer Go CDK URLs. For GCS on Cloud Run, grant the service account
+  # roles/storage.objectAdmin on the bucket and roles/iam.serviceAccountTokenCreator
+  # on itself, then use gs:// without HMAC/S3 credentials.
+  url: gs://jot-prod?access_id=jot-server@example-project.iam.gserviceaccount.com
 
 auth:
   issuer: https://accounts.google.com

@@ -487,7 +487,7 @@ jot/
 └── README.md
 ```
 
-The `storage` interface is the only place that knows about S3 specifics. Native GCS, Azure Blob, or filesystem drivers could slot in as additional packages later.
+The `storage` interface is backed by Go CDK blob storage. Provider-specific details, such as GCS generation checks or S3 conditional writes, stay inside the storage package.
 
 ---
 
@@ -640,8 +640,8 @@ The final running service should be reachable at a custom domain, gated by
 Google Workspace OIDC (only members of one Workspace domain can sign in).
 
 Jot is stateless and deploys best as a Cloud Run service backed by a GCS
-bucket (used via the S3 XML interop API with HMAC keys). Secrets go in
-Secret Manager.
+bucket through Go CDK. Bucket access uses the Cloud Run service account;
+secrets go in Secret Manager.
 
 Inputs (ask the user for each, then proceed):
   - GCP_PROJECT:        the GCP project ID to deploy into
@@ -666,19 +666,19 @@ fails, stop and explain.
      gcloud storage buckets create gs://jot-$GCP_PROJECT \
        --location=$REGION --uniform-bucket-level-access
 
-4. Create a service account for jot and grant it bucket access:
+4. Create a service account for jot and grant it bucket/signing access:
      gcloud iam service-accounts create jot-server \
        --display-name="jot server"
      gcloud storage buckets add-iam-policy-binding gs://jot-$GCP_PROJECT \
        --member="serviceAccount:jot-server@$GCP_PROJECT.iam.gserviceaccount.com" \
        --role="roles/storage.objectAdmin"
+     gcloud iam service-accounts add-iam-policy-binding \
+       jot-server@$GCP_PROJECT.iam.gserviceaccount.com \
+       --member="serviceAccount:jot-server@$GCP_PROJECT.iam.gserviceaccount.com" \
+       --role="roles/iam.serviceAccountTokenCreator"
 
-5. Create HMAC credentials for the service account (S3 interop):
-     gcloud storage hmac create \
-       jot-server@$GCP_PROJECT.iam.gserviceaccount.com
-   Capture the accessId and secret from the output. Store both in Secret Manager:
-     echo -n "<accessId>" | gcloud secrets create jot-s3-access --data-file=-
-     echo -n "<secret>"   | gcloud secrets create jot-s3-secret --data-file=-
+5. Do not create HMAC/S3 credentials for GCS. Jot uses Application Default
+   Credentials for bucket access and IAM `signBlob` for signed upload URLs.
 
 6. Generate and store a cookie secret:
      openssl rand -hex 32 | gcloud secrets create jot-cookie-secret --data-file=-
@@ -703,8 +703,7 @@ fails, stop and explain.
      echo -n "<cli-client-secret>" | gcloud secrets create jot-oauth-cli-client-secret --data-file=-
 
 8. Grant the jot service account access to read its secrets:
-     for s in jot-s3-access jot-s3-secret jot-cookie-secret \
-              jot-oauth-client-id jot-oauth-client-secret \
+     for s in jot-cookie-secret jot-oauth-client-id jot-oauth-client-secret \
               jot-oauth-cli-client-id jot-oauth-cli-client-secret; do
        gcloud secrets add-iam-policy-binding $s \
          --member="serviceAccount:jot-server@$GCP_PROJECT.iam.gserviceaccount.com" \
@@ -721,15 +720,11 @@ fails, stop and explain.
        --min-instances=1 \
        --max-instances=10 \
        --set-env-vars="JOT_SERVER_BASE_URL=https://$JOT_DOMAIN,\
-JOT_STORAGE_ENDPOINT=https://storage.googleapis.com,\
-JOT_STORAGE_BUCKET=jot-$GCP_PROJECT,\
-JOT_STORAGE_REGION=auto,\
+JOT_STORAGE_URL=gs://jot-$GCP_PROJECT?access_id=jot-server@$GCP_PROJECT.iam.gserviceaccount.com,\
 JOT_AUTH_ISSUER=https://accounts.google.com,\
 JOT_AUTH_AUTHORIZE_HD=$WORKSPACE_DOMAIN,\
 JOT_AUTH_SESSION_TTL=8h" \
-       --set-secrets="JOT_STORAGE_ACCESS_KEY_ID=jot-s3-access:latest,\
-JOT_STORAGE_SECRET_ACCESS_KEY=jot-s3-secret:latest,\
-JOT_AUTH_AUDIENCE=jot-oauth-client-id:latest,\
+       --set-secrets="JOT_AUTH_AUDIENCE=jot-oauth-client-id:latest,\
 JOT_AUTH_CLIENT_ID=jot-oauth-client-id:latest,\
 JOT_AUTH_CLI_CLIENT_ID=jot-oauth-cli-client-id:latest,\
 JOT_AUTH_CLI_CLIENT_SECRET=jot-oauth-cli-client-secret:latest,\
@@ -747,8 +742,8 @@ JOT_AUTH_COOKIE_SECRET=jot-cookie-secret:latest"
 
 11. Verify:
       curl -I https://$JOT_DOMAIN/_health
-    Should return 200. If 503, check the bucket is reachable and HMAC keys
-    are correct.
+    Should return 200. If 503, check the bucket IAM binding and service
+    account token creator binding.
 
 12. Print these commands for the user to run on their laptop:
       jot login --server https://$JOT_DOMAIN
@@ -767,7 +762,7 @@ the names of the secrets created.
 - Per-slug ACLs (anyone in the trust ring sees and can mutate any slug today).
 - Multiple OIDC issuers on one server (CI getting native short-lived tokens from GitHub Actions OIDC).
 - ACME / Let's Encrypt inside jot (run a TLS terminator in front).
-- Native GCS, Azure Blob, or filesystem storage drivers.
+- Azure Blob or filesystem storage drivers.
 - Redirect rules / `_redirects` files.
 - Bandwidth / pushes-per-minute rate limiting.
 - Compression (brotli/gzip) on the jot hot path. Use a CDN.

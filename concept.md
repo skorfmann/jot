@@ -1,6 +1,6 @@
 # Jot
 
-A dead-simple, self-hosted, private static-hosting service. Push a file or a folder, get a URL, share it inside your trusted audience. Backed by any S3-compatible object store, gated by OIDC (Google Workspace by default), driven by a single Go binary and a matching Go CLI.
+A dead-simple, self-hosted, private static-hosting service. Push a file or a folder, get a URL, share it inside your trusted audience. Backed by Go CDK blob storage (GCS first, S3-compatible stores for local/self-hosted deployments), gated by OIDC (Google Workspace by default), driven by a single Go binary and a matching Go CLI.
 
 The whole system is shaped around one workflow: an agent (or a human) generates an HTML artifact, pushes it, and gets a URL. That artifact is private to whoever is in the configured trust ring. Mostly push-and-forget, occasionally iterate.
 
@@ -36,8 +36,8 @@ The whole system is shaped around one workflow: an agent (or a human) generates 
 
 ```
 ┌─────────────┐         ┌──────────────┐         ┌─────────────────┐
-│   jot CLI   │────────▶│  jot-server  │────────▶│  S3-compatible  │
-│   (Go)      │  HTTPS  │   (Go)       │  S3 API │  object store   │
+│   jot CLI   │────────▶│  jot-server  │────────▶│   Go CDK blob   │
+│   (Go)      │  HTTPS  │   (Go)       │         │  object store   │
 └─────────────┘         └──────────────┘         └─────────────────┘
        │                       ▲
        │                       │ verifies bearer / cookie
@@ -79,7 +79,7 @@ Key properties:
 - Every blob is named by `sha256(content)`. Uploading the same file twice is a no-op.
 - Deploy IDs are ULIDs (sortable, URL-safe, 26 chars).
 - Slug names match `^[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$`. Reserved: any path starting with `_`.
-- `slugs/<slug>/current` is the only mutable object per slug. Updating it via S3 conditional `If-Match` is the atomic commit.
+- `slugs/<slug>/current` is the only mutable object per slug. Updating it via provider conditional metadata is the atomic commit.
 - Bounded history: last 10 manifests per slug retained by default.
 
 ---
@@ -118,11 +118,11 @@ All metadata fields except `id`, `slug`, `created_at`, `created_by`, and `files`
 2. CLI calls `POST /_api/deploys:check` with the list of hashes → server returns the subset missing in the bucket.
 3. For each missing hash, server returns a signed PUT URL; CLI uploads directly to object storage.
 4. CLI submits the manifest via `PUT /_api/deploys/<id>`. Server writes `manifests/<slug>/<id>.json`.
-5. Server updates `slugs/<slug>/current` using S3 `If-Match` as a compare-and-swap.
+5. Server updates `slugs/<slug>/current` using the provider's conditional-write primitive as a compare-and-swap.
 
 Each step is independently safe. A crash before step 5 leaves orphan blobs and an unreferenced manifest, never a broken URL. GC reclaims them after 7 days.
 
-**Concurrent pushes to the same slug:** the second push's `If-Match` fails with 412. CLI retries once, then errors out with a clear message naming the conflicting deploy ID and pusher.
+**Concurrent pushes to the same slug:** the second push's conditional update fails with 412. The server returns the current deploy metadata so the CLI can report the conflict clearly.
 
 ---
 
@@ -378,11 +378,11 @@ Hitting a limit returns a clear error naming the offending file/total and the co
 
 ### GC
 
-Server runs a daily background sweep (configurable cron):
+Server runs a background sweep shortly after startup and then every 24 hours:
 
 1. List all manifests across all slugs.
 2. Union the referenced blob hashes.
-3. Move any blob in `blobs/sha256/` not in the union to `_trash/<hash>` with a TTL marker.
+3. Move any blob in `blobs/sha256/` not in the union to `_trash/<hash>`.
 4. Hard-delete `_trash/` items older than 7 days.
 
 The 7-day window is the concurrent-push safety margin: an in-flight push whose manifest hasn't been committed is safe from GC during that window.
@@ -406,7 +406,7 @@ Operators run any log shipper they like.
 ### Versioning
 
 - Manifest schema includes `schema_version`. Server refuses manifests with an unknown major version. Additive changes within a major are safe.
-- `GET /_api/version` → `{"server":"1.4.2","manifest_schema":1,"min_cli":"1.0.0"}`. CLI checks once per session (cached); below `min_cli` → loud warning but proceeds.
+- `GET /_api/version` → `{"server":"0.1.6","manifest_schema":1,"min_cli":"0.1.0"}`. The endpoint is available for clients and operational checks; CLI compatibility enforcement is a follow-up.
 
 ### Content type & encoding
 
@@ -432,12 +432,18 @@ server:
   insecure_http: false                  # dev only; disables Secure flag on cookies
 
 storage:
-  endpoint: https://s3.amazonaws.com    # or R2, Garage, GCS-in-interop, etc.
-  region: auto                          # required by some clients
-  bucket: jot-prod
-  access_key_id: ...
-  secret_access_key: ...
-  force_path_style: false               # set true for Garage / MinIO-like backends
+  # Preferred: Go CDK URL config. For GCS on Cloud Run, grant the service
+  # account roles/storage.objectAdmin on the bucket and
+  # roles/iam.serviceAccountTokenCreator on itself. No HMAC/S3 credentials.
+  url: gs://jot-prod?access_id=jot-server@example-project.iam.gserviceaccount.com
+
+  # S3-compatible stores such as Garage/R2 can still use the explicit fields:
+  # endpoint: http://garage:3900
+  # region: garage
+  # bucket: jot
+  # access_key_id: ...
+  # secret_access_key: ...
+  # force_path_style: true
 
 auth:
   issuer: https://accounts.google.com
@@ -473,7 +479,7 @@ jot/
 │   └── jot/main.go
 ├── internal/
 │   ├── manifest/        # shared types + (de)serialization
-│   ├── storage/         # S3 driver behind an interface
+│   ├── storage/         # Go CDK blob storage backend
 │   ├── auth/            # OIDC verifier, browser flow, authorize rules
 │   ├── server/          # HTTP handlers
 │   └── cli/             # CLI command implementations
@@ -507,11 +513,11 @@ Each release includes both `jot` and `jot-server` binaries, SHA-256 checksums, a
 
 ### Homebrew
 
-The primary install path for end users on macOS and Linux. Published via a custom tap at `<org>/homebrew-jot`:
+The primary install path for end users on macOS and Linux. Published via the custom tap at `skorfmann/homebrew-jot`:
 
 ```bash
-brew install <org>/jot/jot           # CLI
-brew install <org>/jot/jot-server    # server, for operators who want it
+brew install skorfmann/jot/jot           # CLI
+brew install skorfmann/jot/jot-server    # server, for operators who want it
 ```
 
 The formula pulls the matching binary from GitHub Releases and verifies the checksum.
@@ -525,21 +531,21 @@ This formula installs `jot`, which on macOS shadows the BSD `jot` utility
 `/usr/bin/jot`.
 ```
 
-A `homebrew-core` submission is a v2 consideration. Core has a "notable, stable, maintained" bar that v1 won't clear, and the custom tap is one extra command for users (`brew tap <org>/jot` if implicit tap fetch isn't enabled).
+A `homebrew-core` submission is a v2 consideration. Core has a "notable, stable, maintained" bar that v1 won't clear, and the custom tap is one extra command for users (`brew tap skorfmann/jot` if implicit tap fetch isn't enabled).
 
 ### Docker image
 
-For operators running the server. Published to `ghcr.io/<org>/jot:<version>` and `:latest`. Built `FROM scratch`, around 15 MB compressed. Multi-arch (amd64 + arm64). The CLI is not distributed via Docker — it's a static binary best installed locally.
+For operators running the server. Published to `ghcr.io/skorfmann/jot:<version>` and `:latest`. Built `FROM scratch`, around 15 MB compressed. Multi-arch (amd64 + arm64). The CLI is not distributed via Docker — it's a static binary best installed locally.
 
 ### Release pipeline
 
-Tagged releases use semver. CI on every `v*` tag: builds binaries, generates checksums, signs with Cosign, publishes to GitHub Releases, pushes the Docker image, and opens a follow-up PR to the Homebrew tap repo bumping the formula's version and SHA. The tap PR is auto-merged once CI on the tap repo passes.
+Tagged releases use semver. CI on every `v*` tag: builds binaries, generates checksums, signs the checksum file with Cosign, publishes to GitHub Releases, pushes the Docker image, and opens a follow-up PR to the Homebrew tap repo bumping the formula's version and SHA.
 
 ---
 
 ## Local demo (Garage + jot)
 
-A self-contained Docker Compose stack for trying jot on your laptop. Uses [Garage](https://garagehq.deuxfleurs.fr/) as the S3-compatible store — a small Rust binary by the Deuxfleurs cooperative, designed for self-hosting. We're avoiding MinIO because it went AGPL and archived its community edition in early 2026; Garage is the current OSS-friendly small-deployment option.
+A self-contained Docker Compose stack for trying jot on your laptop. Uses [Garage](https://garagehq.deuxfleurs.fr/) through the Go CDK S3 backend — a small Rust binary by the Deuxfleurs cooperative, designed for self-hosting. We're avoiding MinIO because it went AGPL and archived its community edition in early 2026; Garage is the current OSS-friendly small-deployment option.
 
 Two simplifications for dev mode:
 
@@ -577,7 +583,7 @@ services:
         garage key info jot-key  # prints the access + secret keys
 
   jot:
-    image: ghcr.io/<org>/jot:latest
+    image: ghcr.io/skorfmann/jot:latest
     depends_on: [garage-init]
     ports: ["8080:8080"]
     volumes:
@@ -645,11 +651,12 @@ secrets go in Secret Manager.
 
 Inputs (ask the user for each, then proceed):
   - GCP_PROJECT:        the GCP project ID to deploy into
-  - REGION:             a Cloud Run region (default: europe-west1)
+  - REGION:             a Cloud Run region (default: europe-west4). Use the
+                        same region for Cloud Run and the bucket.
   - JOT_DOMAIN:         the public hostname (e.g. jot.example.com)
   - WORKSPACE_DOMAIN:   the Google Workspace domain to gate on (e.g. example.com)
   - JOT_IMAGE:          the jot container image to deploy
-                        (default: ghcr.io/<org>/jot:latest)
+                        (default: ghcr.io/skorfmann/jot:latest)
 
 Execute these steps. After each, verify success before moving on. If anything
 fails, stop and explain.

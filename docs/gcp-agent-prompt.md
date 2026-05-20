@@ -9,7 +9,7 @@ Google Workspace OIDC.
 
 Inputs to ask for:
   - GCP_PROJECT
-  - REGION, default europe-west1
+  - REGION, default europe-west4. Use the same region for Cloud Run and the bucket.
   - JOT_DOMAIN, e.g. jot.example.com
   - WORKSPACE_DOMAIN, e.g. example.com
   - JOT_IMAGE, default ghcr.io/skorfmann/jot:latest

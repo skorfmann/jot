@@ -56,6 +56,8 @@ jot inspect <slug|id>
 jot history <slug>
 jot rollback <slug> [id]
 jot rm <slug>
+jot whoami
+jot logout
 ```
 
 Use `--json` on `push`, `ls`, `inspect`, and `history` for agent-friendly output.
@@ -63,6 +65,11 @@ Use `--json` on `push`, `ls`, `inspect`, and `history` for agent-friendly output
 ## Auth
 
 Production mode uses OIDC ID tokens for the CLI and signed `jot_session` cookies for browsers. Both are checked by the same authorization rule.
+
+For Google OAuth, use two clients:
+
+- A Web application client for browser sessions, with `https://jot.example.com/_auth/callback` as an authorized redirect URI.
+- A Desktop app client for CLI login. Store its client ID and desktop client secret as `auth.cli_client_id` and `auth.cli_client_secret`; the CLI uses loopback PKCE.
 
 Local demo mode uses:
 
@@ -75,15 +82,23 @@ Dev mode treats every request as `dev@local` and logs a startup warning. Do not 
 
 ## Configuration
 
-`jot-server` reads config from `--config`, `$JOT_CONFIG`, or `./jot.yaml`. Important environment overrides include:
+`jot-server` reads config from `--config`, `$JOT_CONFIG`, or `./jot.yaml`. Prefer `JOT_STORAGE_URL` for Go CDK URL-based storage config. For GCS, use `gs://...` with service-account IAM; do not set S3 access keys. The endpoint/bucket/access-key fields are for S3-compatible stores such as Garage or R2.
 
+Important environment overrides include:
+
+- `JOT_SERVER_ADDR`
 - `JOT_SERVER_BASE_URL`
+- `JOT_SERVER_HISTORY_SIZE`
+- `JOT_SERVER_INSECURE_HTTP`
 - `JOT_STORAGE_URL`
 - `JOT_STORAGE_GOOGLE_ACCESS_ID`
 - `JOT_STORAGE_ENDPOINT`
+- `JOT_STORAGE_REGION`
 - `JOT_STORAGE_BUCKET`
 - `JOT_STORAGE_ACCESS_KEY_ID`
 - `JOT_STORAGE_SECRET_ACCESS_KEY`
+- `JOT_STORAGE_FORCE_PATH_STYLE`
+- `JOT_AUTH_MODE`
 - `JOT_AUTH_ISSUER`
 - `JOT_AUTH_AUDIENCE`
 - `JOT_AUTH_CLIENT_ID`
@@ -91,7 +106,11 @@ Dev mode treats every request as `dev@local` and logs a startup warning. Do not 
 - `JOT_AUTH_CLI_CLIENT_SECRET`
 - `JOT_AUTH_CLIENT_SECRET`
 - `JOT_AUTH_COOKIE_SECRET`
+- `JOT_AUTH_SESSION_TTL`
 - `JOT_AUTH_AUTHORIZE_HD`
+- `JOT_LIMITS_FILES_PER_PUSH`
+- `JOT_LIMITS_BYTES_PER_FILE`
+- `JOT_LIMITS_BYTES_PER_PUSH`
 
 Generate `auth.cookie_secret` with:
 

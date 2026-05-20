@@ -17,6 +17,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go/middleware"
+	smithyhttp "github.com/aws/smithy-go/transport/http"
 	"github.com/skorfmann/jot/internal/manifest"
 )
 
@@ -45,6 +47,9 @@ func NewS3(ctx context.Context, cfg Config) (*S3Store, error) {
 		o.UsePathStyle = cfg.ForcePathStyle
 		if cfg.Endpoint != "" {
 			o.BaseEndpoint = aws.String(cfg.Endpoint)
+			o.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired
+			o.ResponseChecksumValidation = aws.ResponseChecksumValidationWhenRequired
+			o.APIOptions = append(o.APIOptions, stripS3CompatHeaders)
 		}
 	})
 	return &S3Store{
@@ -53,6 +58,18 @@ func NewS3(ctx context.Context, cfg Config) (*S3Store, error) {
 		bucket:   cfg.Bucket,
 		endpoint: cfg.Endpoint,
 	}, nil
+}
+
+func stripS3CompatHeaders(stack *middleware.Stack) error {
+	return stack.Finalize.Insert(middleware.FinalizeMiddlewareFunc("stripS3CompatHeaders", func(ctx context.Context, in middleware.FinalizeInput, next middleware.FinalizeHandler) (middleware.FinalizeOutput, middleware.Metadata, error) {
+		req, ok := in.Request.(*smithyhttp.Request)
+		if ok {
+			req.Header.Del("Accept-Encoding")
+			req.Header.Del("Amz-Sdk-Invocation-Id")
+			req.Header.Del("Amz-Sdk-Request")
+		}
+		return next.HandleFinalize(ctx, in)
+	}), "Signing", middleware.Before)
 }
 
 func (s *S3Store) Health(ctx context.Context) error {

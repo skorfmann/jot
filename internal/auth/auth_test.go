@@ -15,12 +15,15 @@ func TestAuthorizeRequiredClaims(t *testing.T) {
 }
 
 func TestConfigResponseUsesCLIClientID(t *testing.T) {
-	a := &Authenticator{cfg: RawConfig{Issuer: "https://accounts.example.com", ClientID: "web-client", CLIClientID: "cli-client"}}
+	a := &Authenticator{cfg: RawConfig{Issuer: "https://accounts.example.com", ClientID: "web-client", CLIClientID: "cli-client", CLIClientSecret: "cli-secret"}}
 
 	got := a.ConfigResponse()
 
 	if got["client_id"] != "cli-client" {
 		t.Fatalf("client_id = %v, want cli-client", got["client_id"])
+	}
+	if got["client_secret"] != "cli-secret" {
+		t.Fatalf("client_secret = %v, want cli-secret", got["client_secret"])
 	}
 }
 
@@ -31,5 +34,8 @@ func TestConfigResponseFallsBackToBrowserClientID(t *testing.T) {
 
 	if got["client_id"] != "web-client" {
 		t.Fatalf("client_id = %v, want web-client", got["client_id"])
+	}
+	if _, ok := got["client_secret"]; ok {
+		t.Fatalf("client_secret is present: %v", got["client_secret"])
 	}
 }

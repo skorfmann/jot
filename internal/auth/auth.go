@@ -27,15 +27,16 @@ const (
 )
 
 type RawConfig struct {
-	Mode         string        `yaml:"mode"`
-	Issuer       string        `yaml:"issuer"`
-	Audience     string        `yaml:"audience"`
-	ClientID     string        `yaml:"client_id"`
-	CLIClientID  string        `yaml:"cli_client_id"`
-	ClientSecret string        `yaml:"client_secret"`
-	CookieSecret string        `yaml:"cookie_secret"`
-	SessionTTL   time.Duration `yaml:"session_ttl"`
-	Authorize    Rule          `yaml:"authorize"`
+	Mode            string        `yaml:"mode"`
+	Issuer          string        `yaml:"issuer"`
+	Audience        string        `yaml:"audience"`
+	ClientID        string        `yaml:"client_id"`
+	CLIClientID     string        `yaml:"cli_client_id"`
+	CLIClientSecret string        `yaml:"cli_client_secret"`
+	ClientSecret    string        `yaml:"client_secret"`
+	CookieSecret    string        `yaml:"cookie_secret"`
+	SessionTTL      time.Duration `yaml:"session_ttl"`
+	Authorize       Rule          `yaml:"authorize"`
 }
 
 type Rule struct {
@@ -126,11 +127,15 @@ func (a *Authenticator) ConfigResponse() map[string]any {
 	if a.cfg.CLIClientID != "" {
 		clientID = a.cfg.CLIClientID
 	}
-	return map[string]any{
+	res := map[string]any{
 		"issuer":    a.cfg.Issuer,
 		"client_id": clientID,
 		"scopes":    []string{oidc.ScopeOpenID, "email", "profile"},
 	}
+	if a.cfg.CLIClientSecret != "" {
+		res["client_secret"] = a.cfg.CLIClientSecret
+	}
+	return res
 }
 
 func (a *Authenticator) Authenticate(r *http.Request) (Identity, error) {

@@ -202,10 +202,10 @@ Use separate OAuth clients for Google:
    - `https://jot.example.com/_auth/callback`
    - Store its client ID as `auth.client_id` and its secret as `auth.client_secret`.
 2. Desktop app client for CLI login:
-   - Store its client ID as `auth.cli_client_id`.
+   - Store its client ID as `auth.cli_client_id` and its Desktop client secret as `auth.cli_client_secret`.
    - CLI login uses loopback PKCE at `http://127.0.0.1:50573/callback` by default; the port can be changed with `--callback-port`.
 
-Google Web OAuth clients require a client secret during token exchange, so they cannot be used directly by the CLI. Other OIDC providers may allow one public PKCE client for both surfaces; in that case `auth.cli_client_id` can be omitted and the CLI discovers `auth.client_id`.
+Google Web OAuth clients require a client secret during token exchange, so they cannot be used directly by the CLI. Google's Desktop client secret is distributed to the CLI and must not be treated as confidential; PKCE is the real protection for loopback login. Other OIDC providers may allow one public PKCE client for both surfaces; in that case `auth.cli_client_id` can be omitted and the CLI discovers `auth.client_id`.
 
 ### Actor attribution
 
@@ -444,6 +444,7 @@ auth:
   audience: 1234567890-abc.apps.googleusercontent.com
   client_id: 1234567890-abc.apps.googleusercontent.com
   cli_client_id: 1234567890-cli.apps.googleusercontent.com
+  cli_client_secret: GOCSPX-cli-xxxxxxxxxxxxxxxxxxxx
   client_secret: GOCSPX-xxxxxxxxxxxxxxxxxxxx
   cookie_secret: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
   session_ttl: 8h
@@ -693,17 +694,18 @@ fails, stop and explain.
      e. Click Create. Have the user copy the web Client ID and Client secret.
      f. Create Credentials → OAuth client ID → Application type: Desktop app
      g. Name: "jot-cli"
-     h. Click Create. Have the user copy the desktop Client ID.
+     h. Click Create. Have the user copy the desktop Client ID and Client secret.
 
    Store them in Secret Manager:
      echo -n "<web-client-id>"     | gcloud secrets create jot-oauth-client-id --data-file=-
      echo -n "<web-client-secret>" | gcloud secrets create jot-oauth-client-secret --data-file=-
      echo -n "<cli-client-id>"     | gcloud secrets create jot-oauth-cli-client-id --data-file=-
+     echo -n "<cli-client-secret>" | gcloud secrets create jot-oauth-cli-client-secret --data-file=-
 
 8. Grant the jot service account access to read its secrets:
      for s in jot-s3-access jot-s3-secret jot-cookie-secret \
               jot-oauth-client-id jot-oauth-client-secret \
-              jot-oauth-cli-client-id; do
+              jot-oauth-cli-client-id jot-oauth-cli-client-secret; do
        gcloud secrets add-iam-policy-binding $s \
          --member="serviceAccount:jot-server@$GCP_PROJECT.iam.gserviceaccount.com" \
          --role="roles/secretmanager.secretAccessor"
@@ -730,6 +732,7 @@ JOT_STORAGE_SECRET_ACCESS_KEY=jot-s3-secret:latest,\
 JOT_AUTH_AUDIENCE=jot-oauth-client-id:latest,\
 JOT_AUTH_CLIENT_ID=jot-oauth-client-id:latest,\
 JOT_AUTH_CLI_CLIENT_ID=jot-oauth-cli-client-id:latest,\
+JOT_AUTH_CLI_CLIENT_SECRET=jot-oauth-cli-client-secret:latest,\
 JOT_AUTH_CLIENT_SECRET=jot-oauth-client-secret:latest,\
 JOT_AUTH_COOKIE_SECRET=jot-cookie-secret:latest"
 

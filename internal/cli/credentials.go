@@ -19,6 +19,7 @@ type Credential struct {
 	Expiry       time.Time `json:"expiry,omitempty"`
 	TokenURL     string    `json:"token_url,omitempty"`
 	ClientID     string    `json:"client_id,omitempty"`
+	ClientSecret string    `json:"client_secret,omitempty"`
 }
 
 func loadCredential(server string) (Credential, error) {

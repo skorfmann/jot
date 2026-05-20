@@ -34,6 +34,7 @@ auth:
 
 func TestLoadConfigSupportsCLIClientIDEnv(t *testing.T) {
 	t.Setenv("JOT_AUTH_CLI_CLIENT_ID", "cli-client")
+	t.Setenv("JOT_AUTH_CLI_CLIENT_SECRET", "cli-secret")
 	dir := t.TempDir()
 	path := filepath.Join(dir, "jot.yaml")
 	err := os.WriteFile(path, []byte(`
@@ -54,5 +55,8 @@ auth:
 	}
 	if cfg.Auth.CLIClientID != "cli-client" {
 		t.Fatalf("cli_client_id = %q, want cli-client", cfg.Auth.CLIClientID)
+	}
+	if cfg.Auth.CLIClientSecret != "cli-secret" {
+		t.Fatalf("cli_client_secret = %q, want cli-secret", cfg.Auth.CLIClientSecret)
 	}
 }

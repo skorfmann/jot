@@ -19,10 +19,11 @@ import (
 )
 
 type authConfigResponse struct {
-	Mode     string   `json:"mode"`
-	Issuer   string   `json:"issuer"`
-	ClientID string   `json:"client_id"`
-	Scopes   []string `json:"scopes"`
+	Mode         string   `json:"mode"`
+	Issuer       string   `json:"issuer"`
+	ClientID     string   `json:"client_id"`
+	ClientSecret string   `json:"client_secret"`
+	Scopes       []string `json:"scopes"`
 }
 
 func (r *Root) loginCmd() *cobra.Command {
@@ -67,9 +68,10 @@ func (r *Root) loginCmd() *cobra.Command {
 				scopes = []string{oidc.ScopeOpenID, "email", "profile"}
 			}
 			oauthCfg := oauth2.Config{
-				ClientID: cfg.ClientID,
-				Scopes:   scopes,
-				Endpoint: provider.Endpoint(),
+				ClientID:     cfg.ClientID,
+				ClientSecret: cfg.ClientSecret,
+				Scopes:       scopes,
+				Endpoint:     provider.Endpoint(),
 			}
 			var tok *oauth2.Token
 			if noBrowser {
@@ -90,6 +92,7 @@ func (r *Root) loginCmd() *cobra.Command {
 				Expiry:       tok.Expiry,
 				TokenURL:     provider.Endpoint().TokenURL,
 				ClientID:     cfg.ClientID,
+				ClientSecret: cfg.ClientSecret,
 			}
 			if err := saveCredential(server, cred); err != nil {
 				return err

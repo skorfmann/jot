@@ -47,15 +47,16 @@ Steps:
      - Authorized redirect URIs:
        - https://$JOT_DOMAIN/_auth/callback
      - Create OAuth client ID, type Desktop app, name jot-cli
-     - Store the web client ID, web client secret, and CLI desktop client ID:
+     - Store the web client ID, web client secret, CLI desktop client ID, and CLI desktop client secret:
        echo -n "<web-client-id>"     | gcloud secrets create jot-oauth-client-id --data-file=-
        echo -n "<web-client-secret>" | gcloud secrets create jot-oauth-client-secret --data-file=-
        echo -n "<cli-client-id>"     | gcloud secrets create jot-oauth-cli-client-id --data-file=-
+       echo -n "<cli-client-secret>" | gcloud secrets create jot-oauth-cli-client-secret --data-file=-
 
 8. Grant secret access:
      for s in jot-s3-access jot-s3-secret jot-cookie-secret \
               jot-oauth-client-id jot-oauth-client-secret \
-              jot-oauth-cli-client-id; do
+              jot-oauth-cli-client-id jot-oauth-cli-client-secret; do
        gcloud secrets add-iam-policy-binding $s \
          --member="serviceAccount:jot-server@$GCP_PROJECT.iam.gserviceaccount.com" \
          --role="roles/secretmanager.secretAccessor"
@@ -82,6 +83,7 @@ JOT_STORAGE_SECRET_ACCESS_KEY=jot-s3-secret:latest,\
 JOT_AUTH_AUDIENCE=jot-oauth-client-id:latest,\
 JOT_AUTH_CLIENT_ID=jot-oauth-client-id:latest,\
 JOT_AUTH_CLI_CLIENT_ID=jot-oauth-cli-client-id:latest,\
+JOT_AUTH_CLI_CLIENT_SECRET=jot-oauth-cli-client-secret:latest,\
 JOT_AUTH_CLIENT_SECRET=jot-oauth-client-secret:latest,\
 JOT_AUTH_COOKIE_SECRET=jot-cookie-secret:latest"
 

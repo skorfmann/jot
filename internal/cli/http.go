@@ -78,7 +78,8 @@ func (c *apiClient) idToken(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("stored credential cannot refresh; run jot login --server %s", c.server)
 	}
 	conf := oauth2.Config{
-		ClientID: c.cred.ClientID,
+		ClientID:     c.cred.ClientID,
+		ClientSecret: c.cred.ClientSecret,
 		Endpoint: oauth2.Endpoint{
 			TokenURL: c.cred.TokenURL,
 		},

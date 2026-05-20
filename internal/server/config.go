@@ -36,8 +36,8 @@ func DefaultConfig() Config {
 	cfg.Storage.Region = "auto"
 	cfg.Auth.SessionTTL = 8 * time.Hour
 	cfg.Limits.FilesPerPush = 100
-	cfg.Limits.BytesPerFile = 10 * 1024 * 1024
-	cfg.Limits.BytesPerPush = 50 * 1024 * 1024
+	cfg.Limits.BytesPerFile = 1 * 1024 * 1024 * 1024
+	cfg.Limits.BytesPerPush = 3 * 1024 * 1024 * 1024
 	return cfg
 }
 
@@ -158,7 +158,7 @@ auth:
 
 limits:
   files_per_push: 100
-  bytes_per_file: 10485760
-  bytes_per_push: 52428800
+  bytes_per_file: 1073741824
+  bytes_per_push: 3221225472
 `
 }

@@ -368,8 +368,8 @@ This is the "context when we come back" mechanism. An agent dropped into a worki
 | Limit | Default |
 |---|---|
 | Files per push | 100 |
-| Bytes per file | 10 MB |
-| Bytes per push (total) | 50 MB |
+| Bytes per file | 1 GB |
+| Bytes per push (total) | 3 GB |
 | Manifests retained per slug | 10 |
 | Session cookie TTL | 8h |
 | Soft-delete TTL for unreferenced blobs | 7 days |
@@ -406,7 +406,7 @@ Operators run any log shipper they like.
 ### Versioning
 
 - Manifest schema includes `schema_version`. Server refuses manifests with an unknown major version. Additive changes within a major are safe.
-- `GET /_api/version` → `{"server":"0.1.7","manifest_schema":1,"min_cli":"0.1.0"}`. The endpoint is available for clients and operational checks; CLI compatibility enforcement is a follow-up.
+- `GET /_api/version` → `{"server":"0.1.8","manifest_schema":1,"min_cli":"0.1.0"}`. The endpoint is available for clients and operational checks; CLI compatibility enforcement is a follow-up.
 
 ### Content type & encoding
 
@@ -460,8 +460,8 @@ auth:
 
 limits:
   files_per_push: 100
-  bytes_per_file: 10485760
-  bytes_per_push: 52428800
+  bytes_per_file: 1073741824
+  bytes_per_push: 3221225472
 ```
 
 Server reads config from `--config <path>`, `$JOT_CONFIG`, or `./jot.yaml` (in that order).

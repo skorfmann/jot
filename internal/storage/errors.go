@@ -32,5 +32,8 @@ func FormatLimit(n int64) string {
 	if n < 1024*1024 {
 		return fmt.Sprintf("%.1f KB", float64(n)/1024)
 	}
-	return fmt.Sprintf("%.1f MB", float64(n)/(1024*1024))
+	if n < 1024*1024*1024 {
+		return fmt.Sprintf("%.1f MB", float64(n)/(1024*1024))
+	}
+	return fmt.Sprintf("%.1f GB", float64(n)/(1024*1024*1024))
 }

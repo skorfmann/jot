@@ -382,41 +382,65 @@ func (s *Server) handleContent(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	slug := parts[0]
-	if err := manifest.ValidateSlug(slug); err != nil {
-		http.NotFound(w, r)
-		return
-	}
+	refName := parts[0]
 	if len(parts) == 1 {
-		http.Redirect(w, r, "/"+slug+"/", http.StatusMovedPermanently)
+		if _, err := ulid.ParseStrict(refName); err != nil {
+			if err := manifest.ValidateSlug(refName); err != nil {
+				http.NotFound(w, r)
+				return
+			}
+		}
+		http.Redirect(w, r, "/"+refName+"/", http.StatusMovedPermanently)
 		return
 	}
 	rest := "/" + parts[1]
-	ref, err := s.store.GetCurrent(r.Context(), slug)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
-		return
-	}
-	if !ref.Found {
-		http.NotFound(w, r)
-		return
-	}
-	m, err := s.store.GetManifest(r.Context(), slug, ref.Pointer.ManifestID)
-	if err != nil {
-		if errors.Is(err, storage.ErrNotFound) {
+
+	var m *manifest.Manifest
+	if _, err := ulid.ParseStrict(refName); err == nil {
+		m, err = s.findDeploy(r.Context(), refName)
+		if err != nil {
+			if errors.Is(err, storage.ErrNotFound) {
+				http.NotFound(w, r)
+				return
+			}
+			writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+			return
+		}
+	} else {
+		if err := manifest.ValidateSlug(refName); err != nil {
 			http.NotFound(w, r)
 			return
 		}
-		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
-		return
+		ref, err := s.store.GetCurrent(r.Context(), refName)
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+			return
+		}
+		if !ref.Found {
+			http.NotFound(w, r)
+			return
+		}
+		m, err = s.store.GetManifest(r.Context(), refName, ref.Pointer.ManifestID)
+		if err != nil {
+			if errors.Is(err, storage.ErrNotFound) {
+				http.NotFound(w, r)
+				return
+			}
+			writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+			return
+		}
 	}
+	s.serveManifestContent(w, r, refName, m, rest)
+}
+
+func (s *Server) serveManifestContent(w http.ResponseWriter, r *http.Request, routeRef string, m *manifest.Manifest, rest string) {
 	resolved, ok := manifest.Resolve(m, rest, wantsHTML(r))
 	if !ok {
 		http.NotFound(w, r)
 		return
 	}
 	if resolved.StatusCode == http.StatusMovedPermanently {
-		http.Redirect(w, r, "/"+slug+resolved.RedirectTo, http.StatusMovedPermanently)
+		http.Redirect(w, r, "/"+routeRef+resolved.RedirectTo, http.StatusMovedPermanently)
 		return
 	}
 	headers := manifest.HeadersForPath(m, resolved.Path)

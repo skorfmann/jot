@@ -89,6 +89,45 @@ func TestOverlayLeavesNonHTMLUnchanged(t *testing.T) {
 	}
 }
 
+func TestOverlayServesImmutableDeployIDContent(t *testing.T) {
+	oldHTML := []byte(`<!doctype html><html><body>Old deploy</body></html>`)
+	currentHTML := []byte(`<!doctype html><html><body>Current deploy</body></html>`)
+	js := []byte(`console.log("ok");`)
+	oldDeploy := overlayTestManifest(oldHTML, js)
+	oldDeploy.ID = "01HX0000000000000000000000"
+	currentDeploy := overlayTestManifest(currentHTML, js)
+	currentDeploy.ID = "01HX0000000000000000000001"
+	s := newOverlayTestServer(t, &overlayTestStore{
+		currentID: currentDeploy.ID,
+		manifests: []*manifest.Manifest{
+			currentDeploy,
+			oldDeploy,
+		},
+		blobs: map[string][]byte{
+			oldDeploy.Files["/index.html"].SHA256:     oldHTML,
+			currentDeploy.Files["/index.html"].SHA256: currentHTML,
+			currentDeploy.Files["/app.js"].SHA256:     js,
+		},
+	})
+	req := httptest.NewRequest(http.MethodGet, "/01HX0000000000000000000000/", nil)
+	req.Header.Set("Authorization", "Bearer dev")
+	req.Header.Set("Accept", "text/html")
+	res := httptest.NewRecorder()
+
+	s.Handler().ServeHTTP(res, req)
+
+	body := res.Body.String()
+	if res.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d\n%s", res.Code, http.StatusOK, body)
+	}
+	if !strings.Contains(body, "Old deploy") || strings.Contains(body, "Current deploy") {
+		t.Fatalf("immutable deploy route served wrong body:\n%s", body)
+	}
+	if !strings.Contains(body, `"deployId":"01HX0000000000000000000000"`) {
+		t.Fatalf("bootstrap missing historical deploy id:\n%s", body)
+	}
+}
+
 func TestOverlayDoesNotInjectHeadHTMLResponse(t *testing.T) {
 	html := []byte(`<!doctype html><html><body>Hello</body></html>`)
 	js := []byte(`console.log("ok");`)
@@ -222,6 +261,7 @@ func overlayTestManifest(html, js []byte) *manifest.Manifest {
 type overlayTestStore struct {
 	currentID string
 	manifest  *manifest.Manifest
+	manifests []*manifest.Manifest
 	blobs     map[string][]byte
 }
 
@@ -243,25 +283,27 @@ func (s *overlayTestStore) GetBlob(_ context.Context, hash string) (io.ReadClose
 
 func (s *overlayTestStore) PutManifest(context.Context, *manifest.Manifest) error { return nil }
 
-func (s *overlayTestStore) GetManifest(context.Context, string, string) (*manifest.Manifest, error) {
-	if s.manifest == nil {
-		return nil, storage.ErrNotFound
+func (s *overlayTestStore) GetManifest(_ context.Context, slug string, id string) (*manifest.Manifest, error) {
+	for _, item := range s.allManifests() {
+		if item.Slug == slug && item.ID == id {
+			return item, nil
+		}
 	}
-	return s.manifest, nil
+	return nil, storage.ErrNotFound
 }
 
-func (s *overlayTestStore) ListManifests(context.Context, string) ([]*manifest.Manifest, error) {
-	if s.manifest == nil {
-		return nil, nil
+func (s *overlayTestStore) ListManifests(_ context.Context, slug string) ([]*manifest.Manifest, error) {
+	items := make([]*manifest.Manifest, 0, len(s.allManifests()))
+	for _, item := range s.allManifests() {
+		if item.Slug == slug {
+			items = append(items, item)
+		}
 	}
-	return []*manifest.Manifest{s.manifest}, nil
+	return items, nil
 }
 
 func (s *overlayTestStore) ListAllManifests(context.Context) ([]*manifest.Manifest, error) {
-	if s.manifest == nil {
-		return nil, nil
-	}
-	return []*manifest.Manifest{s.manifest}, nil
+	return s.allManifests(), nil
 }
 
 func (s *overlayTestStore) GetCurrent(context.Context, string) (storage.CurrentRef, error) {
@@ -290,3 +332,13 @@ func (s *overlayTestStore) ListBlobHashes(context.Context) (map[string]struct{},
 func (s *overlayTestStore) MoveBlobToTrash(context.Context, string) error { return nil }
 
 func (s *overlayTestStore) DeleteExpiredTrash(context.Context, time.Duration) error { return nil }
+
+func (s *overlayTestStore) allManifests() []*manifest.Manifest {
+	if len(s.manifests) > 0 {
+		return s.manifests
+	}
+	if s.manifest != nil {
+		return []*manifest.Manifest{s.manifest}
+	}
+	return nil
+}

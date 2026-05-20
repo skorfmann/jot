@@ -24,3 +24,4 @@ This file tracks implementation decisions, tradeoffs, and spec interpretations t
 - Mobile sheet styles use both viewport-width and device-width media queries because injected pages may not include their own viewport meta tag.
 - The overlay relies on the existing authenticated `/_api/slugs/{slug}/history` and `/_api/deploys` endpoints. No new read APIs were added for v1.
 - The overlay does not rewrite user-provided Content-Security-Policy headers. Very restrictive CSP on a deployed page may block the injected module script even though the asset is same-origin.
+- Overlay deploy cards link to immutable deploy ID URLs so history rows open the selected version instead of the current slug pointer. This adds content serving for `/<deploy-id>/...`; normal `/<slug>/...` URLs still resolve through the current pointer.

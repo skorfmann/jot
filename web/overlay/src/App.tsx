@@ -417,6 +417,7 @@ function DeploySection({
 
 function DeployItem({ item }: { item: DeployManifest }) {
   const title = item.title?.trim() || item.slug || item.id;
+  const href = deployHref(item);
   return (
     <article className="jot-deploy-item">
       <div>
@@ -440,12 +441,17 @@ function DeployItem({ item }: { item: DeployManifest }) {
           ))}
         </ul>
       ) : null}
-      <a className="jot-open-link" href={`/${item.slug}/`}>
+      <a className="jot-open-link" href={href}>
         <ExternalLink aria-hidden="true" size={15} />
         Open
       </a>
     </article>
   );
+}
+
+function deployHref(item: DeployManifest) {
+  const ref = item.id || item.slug;
+  return ref ? `/${encodeURIComponent(ref)}/` : '#';
 }
 
 function initialTab(slug: string | null): OverlayTab {

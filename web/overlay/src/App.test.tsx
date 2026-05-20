@@ -131,4 +131,34 @@ describe('App', () => {
     expect(writeText).toHaveBeenCalledWith('report');
     expect(await screen.findByRole('status')).toHaveTextContent('Copied slug');
   });
+
+  it('links deploy cards to immutable deploy IDs', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | URL | Request) => {
+        const url = String(input);
+        const deploys = url.includes('/_api/slugs/report/history')
+          ? [
+              {
+                schema_version: 1,
+                id: '01HX0000000000000000000009',
+                slug: 'report',
+                created_at: '2026-05-20T10:00:00Z',
+                created_by: 'dev@local',
+                title: 'Historical report',
+                files: {}
+              }
+            ]
+          : [];
+        return new Response(JSON.stringify({ deploys }), { status: 200 });
+      })
+    );
+    render(<App bootstrap={bootstrap} />);
+
+    await user.click(screen.getByRole('button', { name: /open jot overlay/i }));
+
+    const link = await screen.findByRole('link', { name: /open/i });
+    expect(link.getAttribute('href')).toBe('/01HX0000000000000000000009/');
+  });
 });

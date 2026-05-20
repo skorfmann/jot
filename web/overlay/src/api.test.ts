@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { clearOverlayCache, fetchJSONCached } from './api';
+import { clearOverlayCache, fetchJSONCached, latestDeployPerSlug } from './api';
 import type { DeployListResponse } from './types';
 
 beforeEach(() => {
@@ -25,5 +25,17 @@ describe('fetchJSONCached', () => {
     expect(second.deploys[0].slug).toBe('one');
     expect(third.deploys[0].slug).toBe('two');
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('latestDeployPerSlug', () => {
+  it('keeps only the first deploy for each slug', () => {
+    const deploys = latestDeployPerSlug([
+      { schema_version: 1, id: 'new-report', slug: 'report', created_at: '2026-05-20T10:02:00Z', created_by: 'dev@local', files: {} },
+      { schema_version: 1, id: 'old-report', slug: 'report', created_at: '2026-05-20T10:01:00Z', created_by: 'dev@local', files: {} },
+      { schema_version: 1, id: 'deck', slug: 'deck', created_at: '2026-05-20T10:00:00Z', created_by: 'dev@local', files: {} }
+    ]);
+
+    expect(deploys.map(deploy => deploy.id)).toEqual(['new-report', 'deck']);
   });
 });

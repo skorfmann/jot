@@ -59,7 +59,7 @@ export async function fetchMyDeploys(apiBase: string, signal: AbortSignal): Prom
     TTL.deploys,
     signal
   );
-  return data.deploys ?? [];
+  return latestDeployPerSlug(data.deploys ?? []);
 }
 
 export async function fetchGlobalDeploys(apiBase: string, signal: AbortSignal): Promise<DeployManifest[]> {
@@ -69,5 +69,19 @@ export async function fetchGlobalDeploys(apiBase: string, signal: AbortSignal): 
     TTL.deploys,
     signal
   );
-  return data.deploys ?? [];
+  return latestDeployPerSlug(data.deploys ?? []);
+}
+
+export function latestDeployPerSlug(deploys: DeployManifest[]): DeployManifest[] {
+  const seen = new Set<string>();
+  const latest: DeployManifest[] = [];
+  for (const deploy of deploys) {
+    const key = deploy.slug || deploy.id;
+    if (!key || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    latest.push(deploy);
+  }
+  return latest;
 }
